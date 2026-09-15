@@ -5,686 +5,469 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 import {
-    collection,
     addDoc,
-    getDocs,
-    query,
-    orderBy,
-    onSnapshot,
-    serverTimestamp,
-    updateDoc,
-    increment,
+    arrayRemove,
+    arrayUnion,
+    collection,
     doc,
     getDoc,
-    setDoc,
-    arrayUnion,
-    arrayRemove,
+    increment,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    updateDoc,
     where
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-// ===========================
-// DOM
-// ===========================
-
-const postContent = document.getElementById("postContent");
-const postBtn = document.getElementById("postBtn");
-const feed = document.getElementById("feed");
-const notificationBtn =
-document.getElementById("notificationBtn");
-const notificationBadge =
-document.getElementById("notificationBadge");
-const homeTab = document.getElementById("homeTab");
-const discoverTab = document.getElementById("discoverTab");
-
-const homeScreen = document.getElementById("homeScreen");
-const discoverScreen = document.getElementById("discoverScreen");
-
-const usersList = document.getElementById("usersList");
-const profileTab = document.getElementById("profileTab");
-const createTab = document.getElementById("createTab");
-const messagesTab = document.getElementById("messagesTab");
+const els = {
+    postContent: document.getElementById("postContent"),
+    postBtn: document.getElementById("postBtn"),
+    postCounter: document.getElementById("postCounter"),
+    composerAvatar: document.getElementById("composerAvatar"),
+    homeSubtitle: document.getElementById("homeSubtitle"),
+    feed: document.getElementById("feed"),
+    notificationBtn: document.getElementById("notificationBtn"),
+    notificationBadge: document.getElementById("notificationBadge")
+};
 
 let currentUser = null;
-let currentUserData = null;
+let currentUserData = {};
+let unsubscribeFeed = null;
+let unsubscribeNotifications = null;
+const commentUnsubscribers = new Map();
 
-// ===========================
-// NAVIGATION
-// ===========================
+function navigate(path) {
+    window.location.assign(path);
+}
 
-homeTab.addEventListener("click", () => {
+function displayName() {
+    return currentUserData.fullname || currentUser?.displayName || "Spark user";
+}
 
-    homeScreen.style.display = "block";
-    discoverScreen.style.display = "none";
+function initials(name = "SparkSocial") {
+    return name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map(part => part[0])
+        .join("")
+        .toUpperCase() || "S";
+}
 
-});
+function setBusy(button, busy, label = "Share spark") {
+    button.disabled = busy;
+    button.querySelector("span").textContent = busy ? "Sharing…" : label;
+}
 
-discoverTab.addEventListener("click", () => {
+function showFeedState(message, className = "feed-state") {
+    els.feed.replaceChildren();
+    const state = document.createElement("div");
+    state.className = className;
+    state.textContent = message;
+    els.feed.appendChild(state);
+}
 
-    homeScreen.style.display = "none";
-    discoverScreen.style.display = "block";
+function createAvatar(user, small = false) {
+    const avatar = document.createElement("div");
+    avatar.className = `post-avatar${small ? " small-avatar" : ""}`;
+    avatar.setAttribute("aria-hidden", "true");
 
-    loadUsers();
-
-});
-profileTab.addEventListener("click", () => {
-
-    location.href = "profile.html";
-
-});
-createTab.addEventListener("click", () => {
-
-    location.href = "create.html";
-
-});
-messagesTab.addEventListener("click", () => {
-
-    location.href = "messages.html";
-
-});
-notificationBtn.addEventListener("click",()=>{
-
-    location.href = "notifications.html";
-
-});
-// ===========================
-// AUTH
-// ===========================
-
-onAuthStateChanged(auth, async (user) => {
-  
-  console.log("AUTH USER:", user);
-
-    if (!user) {
-
-        console.log("No logged in user");
-
-        location.href = "login.html";
-        return;
-
-    }
-
-
-    currentUser = user;
-
-
-    const mySnap = await getDoc(
-        doc(db, "users", currentUser.uid)
-    );
-
-
-    if (mySnap.exists()) {
-
-        currentUserData = mySnap.data();
-
+    if (user.photoURL) {
+        const image = document.createElement("img");
+        image.src = user.photoURL;
+        image.alt = "";
+        image.loading = "lazy";
+        avatar.appendChild(image);
     } else {
-
-        currentUserData = {};
-
+        avatar.textContent = initials(user.fullname || user.displayName);
     }
 
+    return avatar;
+}
 
-    loadPosts();
-    const notificationQuery = query(
-    collection(db, "notifications"),
-    where("receiver", "==", currentUser.uid),
-    where("read", "==", false)
-);
+function createUserButton(user, fallbackName = "Spark user") {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "post-author";
+    button.dataset.uid = user.uid || "";
+    button.appendChild(createAvatar(user, true));
 
-onSnapshot(notificationQuery, (snapshot) => {
+    const info = document.createElement("span");
+    info.className = "post-author-info";
 
-    const count = snapshot.size;
+    const name = document.createElement("strong");
+    name.textContent = user.fullname || user.displayName || fallbackName;
 
-    if (count > 0) {
+    const badges = [];
+    if (user.verified) badges.push("✓");
+    if (user.founder) badges.push("Founder");
+    if (user.ceo) badges.push("CEO");
+    if (user.premium) badges.push("Premium");
 
-        notificationBadge.style.display = "block";
-        notificationBadge.innerHTML = count;
+    const meta = document.createElement("small");
+    meta.textContent = badges.length ? badges.join(" • ") : "SparkSocial member";
 
-    } else {
+    info.append(name, meta);
+    button.appendChild(info);
+    return button;
+}
 
-        notificationBadge.style.display = "none";
+function createPostCard(postId, post) {
+    const card = document.createElement("article");
+    card.className = "post";
+    card.dataset.postId = postId;
 
-    }
+    const header = document.createElement("div");
+    header.className = "post-header";
 
-});
+    const author = createUserButton({
+        uid: post.uid,
+        fullname: post.username,
+        photoURL: post.photoURL,
+        verified: post.verified,
+        founder: post.founder,
+        ceo: post.ceo,
+        premium: post.premium
+    });
 
-});
+    const menu = document.createElement("button");
+    menu.type = "button";
+    menu.className = "post-menu";
+    menu.textContent = "•••";
+    menu.setAttribute("aria-label", "Post options");
+    menu.dataset.action = "post-menu";
 
+    header.append(author, menu);
 
-// ===========================
-// CREATE POST
-// ===========================
+    const body = document.createElement("div");
+    body.className = "post-body";
 
-postBtn.addEventListener("click", async () => {
+    const content = document.createElement("p");
+    content.className = "post-content";
+    content.textContent = post.content || "";
+    body.appendChild(content);
 
-    const text = postContent.value.trim();
+    const actions = document.createElement("div");
+    actions.className = "post-actions";
 
-    if (!text) return;
+    const liked = Array.isArray(post.likedBy) && post.likedBy.includes(currentUser.uid);
+    const likeButton = document.createElement("button");
+    likeButton.type = "button";
+    likeButton.className = `likeBtn${liked ? " is-liked" : ""}`;
+    likeButton.dataset.action = "like";
+    likeButton.dataset.id = postId;
+    likeButton.textContent = `${liked ? "♥" : "♡"} ${post.likes || 0}`;
+    likeButton.setAttribute("aria-label", liked ? "Unlike post" : "Like post");
 
-    await addDoc(collection(db, "posts"), {
+    const commentButton = document.createElement("button");
+    commentButton.type = "button";
+    commentButton.dataset.action = "focus-comment";
+    commentButton.textContent = "Comment";
 
-    uid: currentUser.uid,
-    username: currentUserData.fullname || currentUser.displayName || "User",
+    actions.append(likeButton, commentButton);
 
-    founder: currentUserData.founder || false,
-    ceo: currentUserData.ceo || false,
-    verified: currentUserData.verified || false,
-    premium: currentUserData.premium || false,
+    const commentsSection = document.createElement("div");
+    commentsSection.className = "comments-section";
+    commentsSection.dataset.commentsFor = postId;
 
-    content: text,
-    likes: 0,
-    likedBy: [],
-    createdAt: serverTimestamp()
+    const commentsList = document.createElement("div");
+    commentsList.className = "comments-list";
+    commentsList.id = `comments-${postId}`;
 
-});
-  
+    const commentBox = document.createElement("form");
+    commentBox.className = "comment-box";
+    commentBox.dataset.postId = postId;
 
-    postContent.value = "";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.name = "comment";
+    input.maxLength = 500;
+    input.placeholder = "Add a comment…";
+    input.autocomplete = "off";
 
-});
+    const send = document.createElement("button");
+    send.type = "submit";
+    send.textContent = "➤";
+    send.setAttribute("aria-label", "Send comment");
 
+    commentBox.append(input, send);
+    commentsSection.append(commentsList, commentBox);
+    card.append(header, body, actions, commentsSection);
 
-// ===========================
-// LOAD POSTS
-// ===========================
+    return card;
+}
 
-function loadPosts() {
+async function loadCurrentUser(user) {
+    const snapshot = await getDoc(doc(db, "users", user.uid));
+    currentUserData = snapshot.exists() ? snapshot.data() : {};
 
-    console.log("Loading posts...");
+    const name = displayName();
+    els.homeSubtitle.textContent = `Welcome back, ${name.split(" ")[0]}. What’s sparking your mind?`;
+    els.composerAvatar.replaceChildren();
+    els.composerAvatar.textContent = initials(name);
+}
 
-    const q = query(
+function subscribeToFeed() {
+    if (unsubscribeFeed) unsubscribeFeed();
+
+    const postsQuery = query(
         collection(db, "posts"),
         orderBy("createdAt", "desc")
     );
 
-    onSnapshot(q, (snapshot) => {
-
-        feed.innerHTML = "";
-
-        snapshot.forEach((docSnap) => {
-
-            const post = docSnap.data();
-            const liked =
-    post.likedBy &&
-    post.likedBy.includes(currentUser.uid);
-
-            feed.innerHTML += `
-
-                <div class="post-header">
-
-    <div class="avatar">
-
-        ${(post.username || "L").charAt(0).toUpperCase()}
-
-    </div>
-
-    <div>
-
-        <h3 onclick="location.href='user.html?uid=${post.uid}'"
-        style="cursor:pointer;">
-
-            ${post.username || "Lovena User"}
-
-            ${post.founder ? " 👑" : ""}
-            ${post.ceo ? " 💼" : ""}
-            ${post.verified ? " ✅" : ""}
-            ${post.premium ? " 💎" : ""}
-
-        </h3>
-
-    </div>
-
-</div>
-
-                    <p>${post.content}</p>
-
-                    <div class="post-actions">
-
-                        <button
-                            class="likeBtn"
-                            data-id="${docSnap.id}">
-
-                            ${liked ? "❤️" : "🤍"} ${post.likes || 0}
-
-                        </button>
-
-                    </div>
-
-                    <div class="comments">
-
-    <div class="comment-section">
-
-    <div id="comments-${docSnap.id}" class="comments"></div>
-
-    <div class="comment-input-box">
-
-        <input
-            type="text"
-            id="commentInput-${docSnap.id}"
-            placeholder="Write a comment...">
-
-        <button
-            class="sendCommentBtn"
-            data-id="${docSnap.id}">
-            ➤
-        </button>
-
-    </div>
-
-</div>
-
-                </div>
-
-            `;
-
-        });
-
-        // Load comments for every post
-        snapshot.forEach((docSnap) => {
-
-            loadComments(docSnap.id);
-
-        });
-
-    });
-
-}
-document.addEventListener("click", async (e) => {
-
-    if (!e.target.classList.contains("followBtn")) return;
-
-    if (!currentUser) {
-        alert("Please login first");
-        return;
-    }
-
-    const otherUid = e.target.dataset.id;
-
-    const myRef = doc(db, "users", currentUser.uid);
-    const otherRef = doc(db, "users", otherUid);
-
-    try {
-
-        const amIFollowing =
-    currentUserData.following &&
-    currentUserData.following.includes(otherUid);
-
-if (amIFollowing) {
-
-    // UNFOLLOW
-    await updateDoc(myRef, {
-        following: arrayRemove(otherUid)
-    });
-
-    await updateDoc(otherRef, {
-        followers: arrayRemove(currentUser.uid)
-    });
-
-    currentUserData.following =
-        (currentUserData.following || []).filter(uid => uid !== otherUid);
-
-    e.target.innerHTML = "➕ Follow";
-    e.target.disabled = false;
-
-} else {
-
-    // FOLLOW
-    await setDoc(myRef, {
-        following: arrayUnion(otherUid)
-    }, { merge: true });
-
-    await setDoc(otherRef, {
-        followers: arrayUnion(currentUser.uid)
-    }, { merge: true });
-
-    currentUserData.following = [
-        ...(currentUserData.following || []),
-        otherUid
-    ];
-
-    e.target.innerHTML = "Following ❤️";
-    e.target.disabled = false;
-}
-if (otherUid !== currentUser.uid) {
-await addDoc(
-    collection(db,"notifications"),
-    {
-        receiver: otherUid,
-        sender: currentUser.uid,
-        senderName: currentUserData.fullname || currentUser.displayName,
-        type: "follow",
-        read: false,
-        createdAt: serverTimestamp()
-    }
-);
-
-}
-        e.target.innerHTML = "Following ❤️";
-        
-
-    } catch(error) {
-
-        console.error("Follow error:", error);
-        alert(error.message);
-
-    }
-
-});
-function loadComments(postId){
-
-    const commentsBox =
-        document.getElementById(`comments-${postId}`);
-
-    if(!commentsBox) return;
-
-    const q = query(
-        collection(db,"posts",postId,"comments"),
-        orderBy("createdAt","asc")
-    );
-
-    onSnapshot(q,(snapshot)=>{
-
-        commentsBox.innerHTML="";
-
-        snapshot.forEach((docSnap)=>{
-
-            const comment = docSnap.data();
-
-            commentsBox.innerHTML += `
-<div class="comment">
-
-    <div class="comment-header">
-
-        <div class="avatar small-avatar">
-
-            ${(comment.username || "L").charAt(0).toUpperCase()}
-
-        </div>
-
-        <div>
-
-            <h4 onclick="location.href='user.html?uid=${comment.uid}'"
-                style="cursor:pointer;">
-                ${comment.username || "Lovena User"}
-            </h4>
-
-            <p>${comment.text}</p>
-
-        </div>
-
-    </div>
-
-    <button
-        class="replyBtn"
-        data-post="${postId}"
-        data-comment="${docSnap.id}">
-        ↩️ Reply
-    </button>
-
-    <div id="replies-${docSnap.id}"></div>
-
-</div>
-`;
-            loadReplies(postId, docSnap.id);
-
-        });
-
-    });
-}
-document.addEventListener("click", async (e) => {
-
-    if (!e.target.classList.contains("sendCommentBtn")) return;
-    console.log("Clicked:", e.target);
-
-    const postId = e.target.dataset.id;
-
-    const input = document.getElementById(`commentInput-${postId}`);
-
-    const text = input.value.trim();
-
-    if (!text) return;
-
-    await addDoc(
-        collection(db, "posts", postId, "comments"),
-        {
-            uid: currentUser.uid,
-            username: currentUserData.fullname || currentUser.displayName || "User",
-            text: text,
-            createdAt: serverTimestamp()
+    unsubscribeFeed = onSnapshot(
+        postsQuery,
+        snapshot => {
+            commentUnsubscribers.forEach(unsubscribe => unsubscribe());
+            commentUnsubscribers.clear();
+
+            if (snapshot.empty) {
+                showFeedState("No sparks yet. Be the first to share something.");
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+
+            snapshot.forEach(postSnapshot => {
+                const post = postSnapshot.data();
+                const card = createPostCard(postSnapshot.id, post);
+                fragment.appendChild(card);
+            });
+
+            els.feed.replaceChildren(fragment);
+
+            snapshot.forEach(postSnapshot => {
+                subscribeToComments(postSnapshot.id);
+            });
+        },
+        error => {
+            console.error("Feed error:", error);
+            showFeedState("We couldn’t load the feed. Please try again.");
         }
     );
+}
 
-    input.value = "";
-});
-
-    function loadReplies(postId, commentId) {
-
-    const repliesBox =
-        document.getElementById(`replies-${commentId}`);
-
-    if (!repliesBox) return;
-
-    const q = query(
-        collection(
-            db,
-            "posts",
-            postId,
-            "comments",
-            commentId,
-            "replies"
-        ),
+function subscribeToComments(postId) {
+    const commentsQuery = query(
+        collection(db, "posts", postId, "comments"),
         orderBy("createdAt", "asc")
     );
 
+    const unsubscribe = onSnapshot(
+        commentsQuery,
+        snapshot => {
+            const list = document.getElementById(`comments-${postId}`);
+            if (!list) return;
 
-    onSnapshot(q, (snapshot) => {
+            const fragment = document.createDocumentFragment();
 
-        repliesBox.innerHTML = "";
+            snapshot.forEach(commentSnapshot => {
+                const comment = commentSnapshot.data();
+                const item = document.createElement("div");
+                item.className = "comment";
 
-        snapshot.forEach((docSnap) => {
+                const avatar = createAvatar({ fullname: comment.username }, true);
+                const content = document.createElement("div");
+                const name = document.createElement("strong");
+                name.textContent = comment.username || "Spark user";
+                const text = document.createElement("p");
+                text.textContent = comment.text || "";
 
-            const reply = docSnap.data();
+                content.append(name, text);
+                item.append(avatar, content);
+                fragment.appendChild(item);
+            });
 
-            repliesBox.innerHTML += `
-                <div style="
-                    margin-left:30px;
-                    margin-top:8px;
-                    border-left:2px solid #ddd;
-                    padding-left:10px;
-                ">
-                    <strong>${reply.username}</strong><br>
-                    ${reply.text}
-                </div>
-            `;
-
-        });
-
-    });
-
-}
-
-// ===========================
-// LIKE POSTS
-// ===========================
-
-document.addEventListener("click", async (e) => {
-
-    if (!e.target.classList.contains("likeBtn")) return;
-
-    const postId = e.target.dataset.id;
-
-    const postRef = doc(db, "posts", postId);
-
-    const postSnap = await getDoc(postRef);
-
-    if (!postSnap.exists()) return;
-
-    const post = postSnap.data();
-
-    const likedBy = post.likedBy || [];
-
-    const alreadyLiked = likedBy.includes(currentUser.uid);
-
-    if (alreadyLiked) {
-
-        await updateDoc(postRef, {
-
-            likes: increment(-1),
-
-            likedBy: arrayRemove(currentUser.uid)
-
-        });
-        
-    } else {
-
-        await updateDoc(postRef, {
-
-            likes: increment(1),
-
-            likedBy: arrayUnion(currentUser.uid)
-
-        });
-        console.log("Creating like notification");
-        if (post.uid !== currentUser.uid) {
-
-    await addDoc(
-        collection(db, "notifications"),
-        {
-            receiver: post.uid,
-            sender: currentUser.uid,
-            senderName: currentUserData.fullname || currentUser.displayName,
-            type: "like",
-            postId: postId,
-            read: false,
-            createdAt: serverTimestamp()
-        }
+            list.replaceChildren(fragment);
+        },
+        error => console.error(`Comments error for ${postId}:`, error)
     );
 
+    commentUnsubscribers.set(postId, unsubscribe);
 }
 
+async function createPost() {
+    if (!currentUser) return;
 
+    const text = els.postContent.value.trim();
+    if (!text) {
+        els.postContent.focus();
+        return;
     }
 
-});
-document.addEventListener("click", async (e) => {
-
-    if (!e.target.classList.contains("replyBtn")) return;
-
-    const reply = prompt("Write your reply");
-
-    if (!reply) return;
-
-    const postId = e.target.dataset.post;
-    const commentId = e.target.dataset.comment;
+    setBusy(els.postBtn, true);
 
     try {
-
-        await addDoc(
-            collection(
-                db,
-                "posts",
-                postId,
-                "comments",
-                commentId,
-                "replies"
-            ),
-            {
-                uid: currentUser.uid,
-                username: currentUserData.fullname || currentUser.displayName || "User",
-                text: reply,
-                createdAt: serverTimestamp()
-            }
-        );
-
-        alert("Reply saved!");
-
-    } catch (error) {
-
-        alert(error.message);
-
-    }
-
-});
-async function loadUsers() {
-
-    usersList.innerHTML = "";
-
-    const snapshot = await getDocs(collection(db, "users"));
-
-    snapshot.forEach((docSnap) => {
-
-        const user = docSnap.data();
-
-        user.uid = docSnap.id;
-
-        if (user.uid === currentUser.uid) return;
-
-
-        const isFollowing =
-            currentUserData.following &&
-            currentUserData.following.includes(user.uid);
-
-
-        usersList.innerHTML += `
-
-        <div class="post">
-
-    <div onclick="location.href='user.html?uid=${user.uid}'"
-         style="cursor:pointer;">
-
-        <h3>${user.fullname || "No name"}</h3>
-
-        <p>${user.bio || "No bio"}</p>
-
-    </div>
-
-
-            ${user.isLive ? `
-
-                <p>🔴 LIVE NOW</p>
-
-                <button class="joinLiveBtn" data-id="${user.uid}">
-                    👀 Join Live
-                </button>
-
-            ` : ""}
-
-
-            <button class="followBtn" data-id="${user.uid}">
-                ${isFollowing ? "Following ❤️" : "➕ Follow"}
-            </button>
-
-
-        </div>
-
-        `;
-
-    });
-    
-    // JOIN LIVE BUTTON
-
-    document.querySelectorAll(".joinLiveBtn").forEach((button)=>{
-
-        button.addEventListener("click", ()=>{
-
-            const hostId = button.dataset.id;
-
-            window.location.href =
-            `live.html?host=${hostId}`;
-
+        await addDoc(collection(db, "posts"), {
+            uid: currentUser.uid,
+            username: displayName(),
+            photoURL: currentUserData.photoURL || currentUser.photoURL || "",
+            founder: Boolean(currentUserData.founder),
+            ceo: Boolean(currentUserData.ceo),
+            verified: Boolean(currentUserData.verified),
+            premium: Boolean(currentUserData.premium),
+            content: text,
+            likes: 0,
+            likedBy: [],
+            createdAt: serverTimestamp()
         });
 
+        els.postContent.value = "";
+        updateCounter();
+    } catch (error) {
+        console.error("Create post error:", error);
+        alert("We couldn’t share your spark. Please try again.");
+    } finally {
+        setBusy(els.postBtn, false);
+    }
+}
+
+async function toggleLike(postId) {
+    if (!currentUser) return;
+
+    const postRef = doc(db, "posts", postId);
+    const snapshot = await getDoc(postRef);
+    if (!snapshot.exists()) return;
+
+    const post = snapshot.data();
+    const likedBy = Array.isArray(post.likedBy) ? post.likedBy : [];
+    const alreadyLiked = likedBy.includes(currentUser.uid);
+
+    await updateDoc(postRef, {
+        likes: increment(alreadyLiked ? -1 : 1),
+        likedBy: alreadyLiked
+            ? arrayRemove(currentUser.uid)
+            : arrayUnion(currentUser.uid)
     });
 
-
+    if (!alreadyLiked && post.uid && post.uid !== currentUser.uid) {
+        await addDoc(collection(db, "notifications"), {
+            receiver: post.uid,
+            sender: currentUser.uid,
+            senderName: displayName(),
+            type: "like",
+            postId,
+            read: false,
+            createdAt: serverTimestamp()
+        });
+    }
 }
-document.addEventListener("click", (e)=>{
 
-    if(!e.target.classList.contains("joinLiveBtn")) return;
+async function addComment(postId, input) {
+    const text = input.value.trim();
+    if (!text || !currentUser) return;
 
+    const button = input.parentElement.querySelector("button");
+    button.disabled = true;
 
-    const hostId = e.target.dataset.id;
+    try {
+        await addDoc(collection(db, "posts", postId, "comments"), {
+            uid: currentUser.uid,
+            username: displayName(),
+            photoURL: currentUserData.photoURL || currentUser.photoURL || "",
+            text,
+            createdAt: serverTimestamp()
+        });
+        input.value = "";
+    } catch (error) {
+        console.error("Comment error:", error);
+        alert("We couldn’t add your comment. Please try again.");
+    } finally {
+        button.disabled = false;
+    }
+}
 
+function subscribeToNotifications() {
+    if (unsubscribeNotifications) unsubscribeNotifications();
 
-    location.href = `live.html?host=${hostId}`;
+    const notificationQuery = query(
+        collection(db, "notifications"),
+        where("receiver", "==", currentUser.uid),
+        where("read", "==", false)
+    );
 
+    unsubscribeNotifications = onSnapshot(
+        notificationQuery,
+        snapshot => {
+            const count = snapshot.size;
+            els.notificationBadge.textContent = count > 99 ? "99+" : String(count);
+            els.notificationBadge.hidden = count === 0;
+        },
+        error => console.error("Notification error:", error)
+    );
+}
+
+function updateCounter() {
+    const length = els.postContent.value.length;
+    els.postCounter.textContent = `${length} / 2000`;
+}
+
+els.postContent.addEventListener("input", updateCounter);
+els.postBtn.addEventListener("click", createPost);
+els.notificationBtn.addEventListener("click", () => navigate("notifications.html"));
+
+els.feed.addEventListener("click", async event => {
+    const actionTarget = event.target.closest("[data-action]");
+    if (!actionTarget) return;
+
+    if (actionTarget.dataset.action === "like") {
+        actionTarget.disabled = true;
+        try {
+            await toggleLike(actionTarget.dataset.id);
+        } catch (error) {
+            console.error("Like error:", error);
+        } finally {
+            actionTarget.disabled = false;
+        }
+        return;
+    }
+
+    if (actionTarget.dataset.action === "focus-comment") {
+        const card = actionTarget.closest(".post");
+        card?.querySelector(".comment-box input")?.focus();
+        return;
+    }
+
+    if (actionTarget.dataset.action === "post-menu") {
+        return;
+    }
+
+    if (actionTarget.classList.contains("post-author")) {
+        const uid = actionTarget.dataset.uid;
+        if (uid) navigate(`profile.html?uid=${encodeURIComponent(uid)}`);
+    }
+});
+
+els.feed.addEventListener("submit", async event => {
+    const form = event.target.closest(".comment-box");
+    if (!form) return;
+
+    event.preventDefault();
+    const input = form.querySelector("input[name=comment]");
+    await addComment(form.dataset.postId, input);
+});
+
+onAuthStateChanged(auth, async user => {
+    if (!user) {
+        navigate("login.html");
+        return;
+    }
+
+    currentUser = user;
+
+    try {
+        await loadCurrentUser(user);
+        subscribeToFeed();
+        subscribeToNotifications();
+    } catch (error) {
+        console.error("Home initialization error:", error);
+        showFeedState("SparkSocial couldn’t finish loading. Please refresh.");
+    }
+});
+
+window.addEventListener("beforeunload", () => {
+    if (unsubscribeFeed) unsubscribeFeed();
+    if (unsubscribeNotifications) unsubscribeNotifications();
+    commentUnsubscribers.forEach(unsubscribe => unsubscribe());
 });
