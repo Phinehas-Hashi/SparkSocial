@@ -4,39 +4,70 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#030612">
-  <title>⚡ SparkSocial | Sign Up</title>
+  <meta name="description" content="Create your SparkSocial account.">
+  <title>SparkSocial | Create Account</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="spark-theme.css">
 </head>
 <body class="auth-page">
   <main class="auth-shell">
-    <section class="auth-card">
+    <section class="auth-card" aria-labelledby="signupTitle">
       <header class="auth-brand">
-        <h1 class="spark-brand"><span class="spark-mark">⚡</span>SparkSocial</h1>
+        <div class="auth-logo" aria-hidden="true">⚡</div>
+        <h1 class="spark-brand">SparkSocial</h1>
         <p>Connect · Create · Grow</p>
       </header>
 
-      <h2 class="auth-title">Create your account</h2>
-      <p class="auth-subtitle">Join a community built around real connections and shared sparks.</p>
+      <div class="auth-heading">
+        <span class="auth-kicker">JOIN THE SPARK</span>
+        <h2 id="signupTitle" class="auth-title">Create your account.</h2>
+        <p class="auth-subtitle">Build your profile, find your people and share what makes you spark.</p>
+      </div>
 
       <form id="signupForm" class="auth-form" novalidate>
         <label class="auth-field">
-          <input id="fullName" name="fullName" type="text" autocomplete="name" placeholder="Full name" maxlength="80" required>
+          <span>Display name</span>
+          <input id="displayName" name="displayName" type="text" autocomplete="name" placeholder="Your name" maxlength="60" required>
         </label>
+
         <label class="auth-field">
-          <input id="email" name="email" type="email" autocomplete="email" placeholder="Email address" required>
+          <span>Username</span>
+          <span class="username-wrap"><span aria-hidden="true">@</span><input id="username" name="username" type="text" autocomplete="username" placeholder="yourusername" maxlength="24" minlength="3" pattern="[A-Za-z0-9_.]+" required></span>
+          <small>3–24 characters · letters, numbers, underscores and periods</small>
         </label>
+
         <label class="auth-field">
-          <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Create a password" minlength="6" required>
+          <span>Email address</span>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" maxlength="254" required>
         </label>
+
+        <label class="auth-field">
+          <span>Password</span>
+          <span class="auth-password-wrap">
+            <input id="password" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required>
+            <button id="togglePassword" class="password-toggle" type="button" aria-label="Show password">Show</button>
+          </span>
+          <small id="passwordHint">Use 8+ characters with a mix of letters and numbers.</small>
+        </label>
+
+        <label class="auth-check">
+          <input id="terms" name="terms" type="checkbox" required>
+          <span>I agree to SparkSocial's <a href="privacy.html">privacy practices</a> and community rules.</span>
+        </label>
+
         <p id="signupError" class="auth-error" hidden role="alert"></p>
-        <button id="signupButton" class="auth-submit" type="submit">Create Account <span>→</span></button>
+
+        <button id="signupButton" class="auth-submit" type="submit">
+          <span class="button-label">Create Account</span><span class="button-arrow" aria-hidden="true">→</span>
+        </button>
       </form>
 
-      <p class="auth-switch">Already have an account? <a href="login.html">Sign in</a></p>
+      <div class="auth-divider"><span>Already a member?</span></div>
+      <a class="auth-secondary-button" href="login.html">Sign in</a>
+
+      <p class="auth-legal">After signup, you'll need to verify your email before SparkSocial grants access to the app.</p>
     </section>
   </main>
-
   <script type="module" src="auth.js"></script>
 </body>
 </html>
