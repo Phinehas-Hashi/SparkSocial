@@ -4,36 +4,61 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#030612">
-  <title>⚡ SparkSocial | Sign In</title>
+  <meta name="description" content="Sign in to SparkSocial.">
+  <title>SparkSocial | Sign In</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="spark-theme.css">
 </head>
 <body class="auth-page">
   <main class="auth-shell">
-    <section class="auth-card">
+    <section class="auth-card" aria-labelledby="loginTitle">
       <header class="auth-brand">
-        <h1 class="spark-brand"><span class="spark-mark">⚡</span>SparkSocial</h1>
+        <div class="auth-logo" aria-hidden="true">⚡</div>
+        <h1 class="spark-brand">SparkSocial</h1>
         <p>Connect · Create · Grow</p>
       </header>
 
-      <h2 class="auth-title">Welcome back</h2>
-      <p class="auth-subtitle">Sign in and keep your connections glowing.</p>
+      <div class="auth-heading">
+        <span class="auth-kicker">WELCOME BACK</span>
+        <h2 id="loginTitle" class="auth-title">Your sparks are waiting.</h2>
+        <p class="auth-subtitle">Sign in to continue your conversations, discover creators and keep your community glowing.</p>
+      </div>
 
       <form id="loginForm" class="auth-form" novalidate>
         <label class="auth-field">
-          <input id="email" name="email" type="email" autocomplete="email" placeholder="Email address" required>
+          <span>Email address</span>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required maxlength="254">
         </label>
+
         <label class="auth-field">
-          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" required>
+          <span>Password</span>
+          <span class="auth-password-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+            <button id="togglePassword" class="password-toggle" type="button" aria-label="Show password">Show</button>
+          </span>
         </label>
+
+        <div class="auth-row">
+          <label class="remember-option">
+            <input id="rememberMe" type="checkbox" checked>
+            <span>Keep me signed in</span>
+          </label>
+          <a href="forgot-password.html">Forgot password?</a>
+        </div>
+
         <p id="loginError" class="auth-error" hidden role="alert"></p>
-        <button id="loginButton" class="auth-submit" type="submit">Sign In <span>→</span></button>
+
+        <button id="loginButton" class="auth-submit" type="submit">
+          <span class="button-label">Sign In</span><span class="button-arrow" aria-hidden="true">→</span>
+        </button>
       </form>
 
-      <p class="auth-switch">New to SparkSocial? <a href="signup.html">Create an account</a></p>
+      <div class="auth-divider"><span>New to SparkSocial?</span></div>
+      <a class="auth-secondary-button" href="signup.html">Create a free account</a>
+
+      <p class="auth-legal">By continuing, you agree to use SparkSocial responsibly and respect other members of the community.</p>
     </section>
   </main>
-
   <script type="module" src="login.js"></script>
 </body>
 </html>
