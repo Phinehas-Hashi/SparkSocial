@@ -1,1 +1,35 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create • SparkSocial</title><link rel="stylesheet" href="style.css"></head><body data-page="create" class="app"><main class="container"><h1 class="page-title">Create a Spark</h1><p class="page-subtitle">Share an idea, moment or question with your community.</p><section class="composer"><form id="createForm"><div class="field"><label for="createText">Your Spark</label><textarea id="createText" maxlength="2000" placeholder="What's sparking in your mind today?" required></textarea></div><div class="composer-bottom"><span class="muted">⚡ Text Spark</span><button id="createButton" class="primary">Publish Spark</button></div></form><p id="createStatus" class="muted" style="margin-top:12px"></p></section><section class="card" style="padding:18px"><h2>🔴 Spark Live</h2><p class="muted">Start a live session and connect with your audience.</p><a class="primary" style="display:inline-block;margin-top:14px" href="start-live.html">Start Live</a></section></main><script type="module" src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050812">
+  <title>Create • SparkSocial</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="create" class="app">
+  <main class="container">
+    <h1 class="page-title">Create a Spark</h1>
+    <p class="page-subtitle">Share an idea, moment or question with your community.</p>
+    <section class="composer">
+      <form id="createForm">
+        <div class="field">
+          <label for="createText">Your Spark</label>
+          <textarea id="createText" maxlength="2000" placeholder="What's sparking in your mind today?" required></textarea>
+        </div>
+        <div class="composer-bottom">
+          <span class="muted">⚡ Text Spark</span>
+          <button id="createButton" class="primary" type="submit">Publish Spark</button>
+        </div>
+      </form>
+      <div id="createStatus" class="muted" role="status" aria-live="polite"></div>
+    </section>
+    <section class="card" style="padding:18px">
+      <h2>🔴 Spark Live</h2>
+      <p class="muted">Browse live sessions. Creator broadcasting will be added when the secure media service is ready.</p>
+      <a class="primary" style="display:inline-block;margin-top:14px" href="live.html">Browse Live</a>
+    </section>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
