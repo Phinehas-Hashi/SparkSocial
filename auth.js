@@ -1,104 +1,145 @@
 import { auth, db } from "./firebase.js";
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
+  sendEmailVerification,
   updateProfile,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import {
   doc,
-  setDoc,
+  getDoc,
+  runTransaction,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-async function getUserLocation() {
-  try {
-    const response = await fetch("https://ipapi.co/json/", { headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error("Location request failed");
-    const data = await response.json();
-    return {
-      country: data.country_name || "Unknown",
-      continent: data.continent_code || "Unknown"
-    };
-  } catch {
-    return { country: "Unknown", continent: "Unknown" };
-  }
-}
+const form = document.getElementById("signupForm");
+if (!form) throw new Error("Signup form not found.");
+
+const displayNameInput = document.getElementById("displayName");
+const usernameInput = document.getElementById("username");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const termsInput = document.getElementById("terms");
+const button = document.getElementById("signupButton");
+const errorBox = document.getElementById("signupError");
+const togglePassword = document.getElementById("togglePassword");
 
 const errorMessages = {
   "auth/email-already-in-use": "That email is already registered. Try signing in instead.",
   "auth/invalid-email": "Please enter a valid email address.",
-  "auth/weak-password": "Your password is too weak. Use at least 6 characters.",
+  "auth/weak-password": "Use a stronger password with at least 8 characters.",
   "auth/network-request-failed": "Network error. Check your connection and try again.",
-  "auth/operation-not-allowed": "Email/password sign-in is not enabled for this project."
+  "auth/operation-not-allowed": "Email/password accounts are not enabled in Firebase yet.",
+  "auth/too-many-requests": "Too many attempts. Please wait a little and try again.",
+  "permission-denied": "We couldn't save your profile. Check your Firestore rules and try again."
 };
 
-function getErrorMessage(error) {
-  return errorMessages[error?.code] || "We couldn't create your account. Please try again.";
+function showError(message) {
+  errorBox.textContent = message;
+  errorBox.hidden = false;
 }
 
-const signupForm = document.getElementById("signupForm");
+function normalizeUsername(value) {
+  return value.trim().toLowerCase();
+}
 
-if (signupForm) {
-  const fullNameInput = document.getElementById("fullName");
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
-  const button = document.getElementById("signupButton");
-  const errorBox = document.getElementById("signupError");
+function validPassword(password) {
+  return password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+}
 
-  const showError = (message) => {
-    errorBox.textContent = message;
-    errorBox.hidden = false;
-  };
-
-  onAuthStateChanged(auth, (user) => {
-    if (user) location.replace("home.html");
+if (togglePassword) {
+  togglePassword.addEventListener("click", () => {
+    const showing = passwordInput.type === "text";
+    passwordInput.type = showing ? "password" : "text";
+    togglePassword.textContent = showing ? "Show" : "Hide";
+    togglePassword.setAttribute("aria-label", showing ? "Show password" : "Hide password");
   });
+}
 
-  signupForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    errorBox.hidden = true;
+// Never redirect a signed-in but unverified account into the app.
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    if (user.emailVerified) location.replace("home.html");
+    else location.replace("verify-email.html");
+  }
+});
 
-    const fullName = fullNameInput.value.trim();
-    const email = emailInput.value.trim().toLowerCase();
-    const password = passwordInput.value;
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  errorBox.hidden = true;
 
-    if (fullName.length < 2) return showError("Please enter your full name.");
-    if (password.length < 6) return showError("Your password must be at least 6 characters.");
+  const displayName = displayNameInput.value.trim();
+  const username = normalizeUsername(usernameInput.value);
+  const email = emailInput.value.trim().toLowerCase();
+  const password = passwordInput.value;
 
-    button.disabled = true;
-    button.textContent = "Creating account…";
+  if (displayName.length < 2) return showError("Please enter a display name.");
+  if (!/^[a-z0-9_.]{3,24}$/.test(username)) return showError("Username must be 3–24 characters using letters, numbers, underscores or periods.");
+  if (!validPassword(password)) return showError("Password must be 8+ characters and contain at least one letter and one number.");
+  if (!termsInput.checked) return showError("Please accept the community and privacy terms to continue.");
 
+  button.disabled = true;
+  button.querySelector(".button-label").textContent = "Creating account…";
+
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = credential.user;
+
+    // Reserve the username atomically so two accounts cannot claim it simultaneously.
     try {
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = credential.user;
-      await updateProfile(user, { displayName: fullName });
-      const locationData = await getUserLocation();
+      await runTransaction(db, async (transaction) => {
+        const usernameRef = doc(db, "usernames", username);
+        const existing = await transaction.get(usernameRef);
+        if (existing.exists()) throw new Error("USERNAME_TAKEN");
 
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        fullname: fullName,
-        email,
-        photo: "",
-        bio: "Hey there 👋 I'm using SparkSocial.",
-        followers: [],
-        following: [],
-        likes: 0,
-        verified: false,
-        country: locationData.country,
-        continent: locationData.continent,
-        locationVerified: true,
-        sparkLevel: 1,
-        sparkXP: 0,
-        sparkBadges: [],
-        createdAt: serverTimestamp()
+        const userRef = doc(db, "users", user.uid);
+        transaction.set(usernameRef, {
+          uid: user.uid,
+          username,
+          createdAt: serverTimestamp()
+        });
+        transaction.set(userRef, {
+          uid: user.uid,
+          username,
+          usernameLower: username,
+          displayName,
+          displayNameLower: displayName.toLowerCase(),
+          email,
+          photoURL: "",
+          coverURL: "",
+          bio: "Hey there 👋 I'm using SparkSocial.",
+          location: null,
+          accountType: "user",
+          isVerified: false,
+          isPrivate: false,
+          isOnline: false,
+          lastSeenAt: null,
+          followersCount: 0,
+          followingCount: 0,
+          postsCount: 0,
+          sparkXP: 0,
+          sparkLevel: 1,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
       });
-
-      location.replace("home.html");
-    } catch (error) {
-      showError(getErrorMessage(error));
-      button.disabled = false;
-      button.innerHTML = "Create Account <span>→</span>";
+    } catch (profileError) {
+      await user.delete().catch(() => {});
+      if (profileError?.message === "USERNAME_TAKEN") throw new Error("USERNAME_TAKEN");
+      throw profileError;
     }
-  });
-}
+
+    await updateProfile(user, { displayName });
+    await sendEmailVerification(user);
+    location.replace("verify-email.html");
+  } catch (error) {
+    if (error?.message === "USERNAME_TAKEN") {
+      showError("That username is already taken. Choose another one.");
+    } else {
+      console.error("SparkSocial signup error:", error);
+      showError(errorMessages[error?.code] || "We couldn't create your account. Please try again.");
+    }
+    button.disabled = false;
+    button.querySelector(".button-label").textContent = "Create Account";
+  }
+});
