@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Lovena</title>
+
+<script type="module">
+
+import { auth } from "./firebase.js";
+
+import {
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+
+onAuthStateChanged(auth, (user)=>{
+
+    if(user){
+
+        location.href = "home.html";
+
+    } else {
+
+        location.href = "login.html";
+
+    }
+
+});
+
+</script>
+
+</head>
+
+<body>
+
+<p>Loading Lovena ❤️...</p>
+
+</body>
+</html>

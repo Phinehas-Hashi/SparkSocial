@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>SparkSocial</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body class="home-body">
+
+<!-- TOP BAR -->
+
+<header class="topbar">
+
+    <div class="logo">
+
+    ⚡ SparkSocial
+
+</div>
+
+    <div class="top-icons">
+
+    <div style="position:relative;display:inline-block;">
+
+        <button id="notificationBtn">🔔</button>
+
+        <span id="notificationBadge"
+        style="
+        display:none;
+        position:absolute;
+        top:-5px;
+        right:-5px;
+        background:red;
+        color:white;
+        border-radius:50%;
+        min-width:18px;
+        height:18px;
+        font-size:12px;
+        line-height:18px;
+        text-align:center;">
+        0
+        </span>
+
+    </div>
+
+</div>
+
+</header>
+
+<!-- HOME FEED -->
+
+<main class="feed-container">
+
+    <!-- HOME SCREEN -->
+
+    <section id="homeScreen">
+
+        <div class="create-post">
+
+            <textarea
+                id="postContent"
+                placeholder="What's on your mind today?"></textarea>
+                
+                <button id="postBtn" class="primary-btn">
+    🚀 Share Post
+</button>
+
+        </div>
+
+        <div id="feed"></div>
+
+    </section>
+
+    <!-- DISCOVER SCREEN -->
+
+    <section id="discoverScreen" style="display:none;">
+
+        <h2>🌍 Discover</h2>
+
+        <input
+            type="text"
+            id="searchUser"
+            placeholder="Search users...">
+
+        <div id="usersList"></div>
+
+    </section>
+
+</main>
+
+<!-- BOTTOM NAVIGATION -->
+
+<nav class="bottom-nav">
+
+    <button id="homeTab">🏠</button>
+
+    <button id="discoverTab">🌍</button>
+
+    <button id="createTab">➕</button>
+
+    <button id="messagesTab">💬</button>
+
+    <button id="profileTab">👤</button>
+
+</nav>
+
+<script type="module" src="home.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+
+body{
+
+    overflow:hidden;
+    background:#000;
+
+}
+
+
+/* MAIN LIVE CONTAINER */
+
+.live-room{
+
+    width:100%;
+    height:100dvh;
+
+    position:relative;
+
+    background:#000;
+
+    overflow:hidden;
+
+    color:white;
+
+}
+
+
+
+/* VIDEO AREA */
+
+.live-video{
+
+    position:absolute;
+
+    inset:0;
+
+    z-index:1;
+
+}
+
+
+#liveVideo,
+#liveLocalVideo,
+#liveRemoteVideo{
+
+    width:100%;
+    height:100%;
+
+}
+
+
+#liveVideo video,
+#liveLocalVideo video,
+#liveRemoteVideo video{
+
+    width:100%;
+    height:100%;
+
+    object-fit:cover;
+
+}
+
+
+
+/* TOP BAR */
+
+.live-top{
+
+    position:absolute;
+
+    top:0;
+    left:0;
+    right:0;
+
+    height:60px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:15px;
+
+    background:rgba(0,0,0,.5);
+
+    z-index:10;
+
+}
+
+
+
+/* STATUS */
+
+#liveStatus{
+
+    position:absolute;
+
+    top:70px;
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    z-index:20;
+
+}
+
+
+
+/* COMMENTS */
+
+#liveComments{
+
+    position:absolute;
+
+    bottom:160px;
+
+    left:15px;
+
+    z-index:20;
+
+}
+
+
+
+/* COMMENT INPUT */
+
+.comment-box{
+
+    position:absolute;
+
+    bottom:90px;
+
+    left:15px;
+
+    right:15px;
+
+    display:flex;
+
+    gap:10px;
+
+    z-index:30;
+
+}
+
+
+.comment-box input{
+
+    flex:1;
+
+}
+
+
+
+/* BUTTONS */
+
+.live-actions{
+
+    position:absolute;
+
+    bottom:10px;
+
+    left:0;
+
+    right:0;
+
+    display:flex;
+
+    justify-content:center;
+
+    gap:25px;
+
+    z-index:50;
+
+}
+
+
+.live-actions button{
+
+    width:60px;
+
+    height:60px;
+
+    border-radius:50%;
+
+    border:none;
+
+    font-size:25px;
+
+}
+#liveLocalVideo{
+
+    position:absolute;
+
+    inset:0;
+
+    z-index:2;
+
+}
+
+
+#liveLocalVideo video{
+
+    object-fit:cover;
+
+}

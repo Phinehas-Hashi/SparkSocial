@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Messages - SparkSocial</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<body>
+
+<div class="messages-page">
+
+    <!-- Sidebar -->
+    <div id="chatUsers" class="chat-list">
+        Loading chats...
+    </div>
+
+    <!-- Chat Screen -->
+    <div id="activeChat" class="chat-screen">
+
+        <!-- Header -->
+        <div class="chat-header">
+
+            <button id="backBtn">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+
+            <div class="chat-user-info">
+
+                <div class="chat-avatar">
+                    👤
+                </div>
+
+                <div class="chat-user-details">
+
+                    <h2 id="chatName">
+                        Select Chat
+                    </h2>
+
+                    <p id="chatStatus">
+                        Offline
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="chat-call-buttons">
+
+                <button id="voiceCallBtn">
+                    <i class="bi bi-telephone-fill"></i>
+                </button>
+
+                <button id="videoCallBtn">
+                    <i class="bi bi-camera-video-fill"></i>
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- Messages -->
+        <div id="chatBox"></div>
+
+        <!-- Input -->
+        <div class="message-controls">
+
+            <input
+                id="messageInput"
+                type="text"
+                placeholder="Type a message...">
+
+            <button id="sendBtn">
+                <i class="bi bi-send-fill"></i>
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+<div id="incomingCallOverlay" class="incoming-call-overlay">
+
+    <div class="incoming-card">
+
+        <div id="incomingAvatar" class="incoming-avatar">
+            👤
+        </div>
+
+        <h2 id="incomingName">
+            Unknown User
+        </h2>
+
+        <p id="incomingType">
+            Incoming Voice Call
+        </p>
+
+        <div class="incoming-actions">
+
+            <button id="declineIncoming" class="incoming-decline">
+                Decline
+            </button>
+
+            <button id="acceptIncoming" class="incoming-accept">
+                Accept
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script type="module" src="messages.js"></script>
+
+</body>
+
+</html>

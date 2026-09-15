@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SparkSocial Call</title>
+
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+</head>
+
+
+<body>
+
+
+<div class="callPage">
+
+
+<div class="call-glow"></div>
+
+
+
+<div class="call-avatar" id="callAvatar">
+U
+</div>
+
+
+
+<h2 id="callTitle">
+Calling...
+</h2>
+
+
+<p id="callStatus">
+Connecting to SparkSocial...
+</p>
+
+
+
+
+
+<div class="call-info">
+
+<span>
+Secure SparkSocial Call
+</span>
+
+</div>
+
+
+
+
+
+<div id="callControls">
+
+    <button id="acceptBtn" class="call-btn accept">
+        <i class="bi bi-telephone-fill"></i>
+    </button>
+
+    <button id="muteBtn" class="call-btn">
+        <i class="bi bi-mic-fill"></i>
+    </button>
+
+    <button id="rejectBtn" class="call-btn end">
+        <i class="bi bi-telephone-x-fill"></i>
+    </button>
+
+</div>
+
+
+
+
+
+<div id="videoArea" style="display:none;">
+
+
+<div id="remoteVideo"></div>
+
+
+<div id="localVideo"></div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+<script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.24.0.js"></script>
+
+<script type="module" src="call.js"></script>
+
+
+</body>
+
+</html>

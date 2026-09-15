@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SparkSocial Live</title>
+
+<link rel="stylesheet" href="live.css">
+
+</head>
+
+
+<body>
+
+
+<div class="live-room" id="liveRoom">
+
+
+<div class="spark-layer" id="sparkLayer"></div>
+
+
+<div class="live-top">
+
+<div id="hostInfo">
+Loading host...
+</div>
+
+
+<div id="viewerCount">
+👀 0 viewers
+</div>
+
+</div>
+
+
+
+
+<div class="live-video">
+
+<div id="liveRemoteVideo"></div>
+
+<div id="liveLocalVideo"></div>
+
+</div>
+
+
+
+
+<div class="live-badge">
+🔴 LIVE
+</div>
+
+
+
+
+<div id="liveStatus">
+
+Connecting...
+
+</div>
+
+
+
+
+<div class="like-counter">
+
+✨ <span id="likeCount">0</span>
+
+</div>
+
+
+
+
+<div id="liveComments">
+
+</div>
+
+
+
+
+
+<div class="comment-box">
+
+
+<input 
+id="commentInput"
+placeholder="Say something...">
+
+
+<button id="sendCommentBtn">
+💬
+</button>
+
+
+</div>
+
+
+
+
+
+
+<div class="live-actions">
+
+
+<button id="giftBtn">
+🎁
+</button>
+
+
+<button id="likeBtn">
+✨
+</button>
+
+
+<button id="endLiveBtn">
+⛔
+</button>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+<script src="./AgoraRTC_N-4.24.0.js"></script>
+
+<script type="module" src="./live.js"></script>
+
+
+</body>
+
+</html>
