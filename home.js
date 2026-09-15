@@ -1,23 +1,11 @@
 import { auth, db } from "./firebase.js";
 
-import {
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 import {
-    addDoc,
-    arrayRemove,
-    arrayUnion,
-    collection,
-    doc,
-    getDoc,
-    increment,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where
+    addDoc, arrayRemove, arrayUnion, collection, doc, getDoc,
+    increment, onSnapshot, orderBy, query, serverTimestamp,
+    updateDoc, where
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 const els = {
@@ -37,22 +25,14 @@ let unsubscribeFeed = null;
 let unsubscribeNotifications = null;
 const commentUnsubscribers = new Map();
 
-function navigate(path) {
-    window.location.assign(path);
-}
+function navigate(path) { window.location.assign(path); }
 
 function displayName() {
     return currentUserData.fullname || currentUser?.displayName || "Spark user";
 }
 
 function initials(name = "SparkSocial") {
-    return name
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map(part => part[0])
-        .join("")
-        .toUpperCase() || "S";
+    return name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "S";
 }
 
 function setBusy(button, busy, label = "Share spark") {
@@ -60,10 +40,10 @@ function setBusy(button, busy, label = "Share spark") {
     button.querySelector("span").textContent = busy ? "Sharing…" : label;
 }
 
-function showFeedState(message, className = "feed-state") {
+function showFeedState(message) {
     els.feed.replaceChildren();
     const state = document.createElement("div");
-    state.className = className;
+    state.className = "feed-state";
     state.textContent = message;
     els.feed.appendChild(state);
 }
@@ -82,7 +62,6 @@ function createAvatar(user, small = false) {
     } else {
         avatar.textContent = initials(user.fullname || user.displayName);
     }
-
     return avatar;
 }
 
@@ -137,12 +116,10 @@ function createPostCard(postId, post) {
     menu.textContent = "•••";
     menu.setAttribute("aria-label", "Post options");
     menu.dataset.action = "post-menu";
-
     header.append(author, menu);
 
     const body = document.createElement("div");
     body.className = "post-body";
-
     const content = document.createElement("p");
     content.className = "post-content";
     content.textContent = post.content || "";
@@ -164,12 +141,10 @@ function createPostCard(postId, post) {
     commentButton.type = "button";
     commentButton.dataset.action = "focus-comment";
     commentButton.textContent = "Comment";
-
     actions.append(likeButton, commentButton);
 
     const commentsSection = document.createElement("div");
     commentsSection.className = "comments-section";
-    commentsSection.dataset.commentsFor = postId;
 
     const commentsList = document.createElement("div");
     commentsList.className = "comments-list";
@@ -194,7 +169,6 @@ function createPostCard(postId, post) {
     commentBox.append(input, send);
     commentsSection.append(commentsList, commentBox);
     card.append(header, body, actions, commentsSection);
-
     return card;
 }
 
@@ -211,85 +185,60 @@ async function loadCurrentUser(user) {
 function subscribeToFeed() {
     if (unsubscribeFeed) unsubscribeFeed();
 
-    const postsQuery = query(
-        collection(db, "posts"),
-        orderBy("createdAt", "desc")
-    );
+    const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"));
 
-    unsubscribeFeed = onSnapshot(
-        postsQuery,
-        snapshot => {
-            commentUnsubscribers.forEach(unsubscribe => unsubscribe());
-            commentUnsubscribers.clear();
+    unsubscribeFeed = onSnapshot(postsQuery, snapshot => {
+        commentUnsubscribers.forEach(unsubscribe => unsubscribe());
+        commentUnsubscribers.clear();
 
-            if (snapshot.empty) {
-                showFeedState("No sparks yet. Be the first to share something.");
-                return;
-            }
-
-            const fragment = document.createDocumentFragment();
-
-            snapshot.forEach(postSnapshot => {
-                const post = postSnapshot.data();
-                const card = createPostCard(postSnapshot.id, post);
-                fragment.appendChild(card);
-            });
-
-            els.feed.replaceChildren(fragment);
-
-            snapshot.forEach(postSnapshot => {
-                subscribeToComments(postSnapshot.id);
-            });
-        },
-        error => {
-            console.error("Feed error:", error);
-            showFeedState("We couldn’t load the feed. Please try again.");
+        if (snapshot.empty) {
+            showFeedState("No sparks yet. Be the first to share something.");
+            return;
         }
-    );
+
+        const fragment = document.createDocumentFragment();
+        snapshot.forEach(postSnapshot => fragment.appendChild(createPostCard(postSnapshot.id, postSnapshot.data())));
+        els.feed.replaceChildren(fragment);
+
+        snapshot.forEach(postSnapshot => subscribeToComments(postSnapshot.id));
+    }, error => {
+        console.error("Feed error:", error);
+        showFeedState("We couldn’t load the feed. Please try again.");
+    });
 }
 
 function subscribeToComments(postId) {
-    const commentsQuery = query(
-        collection(db, "posts", postId, "comments"),
-        orderBy("createdAt", "asc")
-    );
+    const commentsQuery = query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc"));
 
-    const unsubscribe = onSnapshot(
-        commentsQuery,
-        snapshot => {
-            const list = document.getElementById(`comments-${postId}`);
-            if (!list) return;
+    const unsubscribe = onSnapshot(commentsQuery, snapshot => {
+        const list = document.getElementById(`comments-${postId}`);
+        if (!list) return;
 
-            const fragment = document.createDocumentFragment();
+        const fragment = document.createDocumentFragment();
+        snapshot.forEach(commentSnapshot => {
+            const comment = commentSnapshot.data();
+            const item = document.createElement("div");
+            item.className = "comment";
 
-            snapshot.forEach(commentSnapshot => {
-                const comment = commentSnapshot.data();
-                const item = document.createElement("div");
-                item.className = "comment";
+            const avatar = createAvatar({ fullname: comment.username }, true);
+            const content = document.createElement("div");
+            const name = document.createElement("strong");
+            name.textContent = comment.username || "Spark user";
+            const text = document.createElement("p");
+            text.textContent = comment.text || "";
 
-                const avatar = createAvatar({ fullname: comment.username }, true);
-                const content = document.createElement("div");
-                const name = document.createElement("strong");
-                name.textContent = comment.username || "Spark user";
-                const text = document.createElement("p");
-                text.textContent = comment.text || "";
-
-                content.append(name, text);
-                item.append(avatar, content);
-                fragment.appendChild(item);
-            });
-
-            list.replaceChildren(fragment);
-        },
-        error => console.error(`Comments error for ${postId}:`, error)
-    );
+            content.append(name, text);
+            item.append(avatar, content);
+            fragment.appendChild(item);
+        });
+        list.replaceChildren(fragment);
+    }, error => console.error(`Comments error for ${postId}:`, error));
 
     commentUnsubscribers.set(postId, unsubscribe);
 }
 
 async function createPost() {
     if (!currentUser) return;
-
     const text = els.postContent.value.trim();
     if (!text) {
         els.postContent.focus();
@@ -297,7 +246,6 @@ async function createPost() {
     }
 
     setBusy(els.postBtn, true);
-
     try {
         await addDoc(collection(db, "posts"), {
             uid: currentUser.uid,
@@ -312,7 +260,6 @@ async function createPost() {
             likedBy: [],
             createdAt: serverTimestamp()
         });
-
         els.postContent.value = "";
         updateCounter();
     } catch (error) {
@@ -336,9 +283,7 @@ async function toggleLike(postId) {
 
     await updateDoc(postRef, {
         likes: increment(alreadyLiked ? -1 : 1),
-        likedBy: alreadyLiked
-            ? arrayRemove(currentUser.uid)
-            : arrayUnion(currentUser.uid)
+        likedBy: alreadyLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid)
     });
 
     if (!alreadyLiked && post.uid && post.uid !== currentUser.uid) {
@@ -360,7 +305,6 @@ async function addComment(postId, input) {
 
     const button = input.parentElement.querySelector("button");
     button.disabled = true;
-
     try {
         await addDoc(collection(db, "posts", postId, "comments"), {
             uid: currentUser.uid,
@@ -387,20 +331,15 @@ function subscribeToNotifications() {
         where("read", "==", false)
     );
 
-    unsubscribeNotifications = onSnapshot(
-        notificationQuery,
-        snapshot => {
-            const count = snapshot.size;
-            els.notificationBadge.textContent = count > 99 ? "99+" : String(count);
-            els.notificationBadge.hidden = count === 0;
-        },
-        error => console.error("Notification error:", error)
-    );
+    unsubscribeNotifications = onSnapshot(notificationQuery, snapshot => {
+        const count = snapshot.size;
+        els.notificationBadge.textContent = count > 99 ? "99+" : String(count);
+        els.notificationBadge.hidden = count === 0;
+    }, error => console.error("Notification error:", error));
 }
 
 function updateCounter() {
-    const length = els.postContent.value.length;
-    els.postCounter.textContent = `${length} / 2000`;
+    els.postCounter.textContent = `${els.postContent.value.length} / 2000`;
 }
 
 els.postContent.addEventListener("input", updateCounter);
@@ -408,44 +347,34 @@ els.postBtn.addEventListener("click", createPost);
 els.notificationBtn.addEventListener("click", () => navigate("notifications.html"));
 
 els.feed.addEventListener("click", async event => {
+    const author = event.target.closest(".post-author");
+    if (author) {
+        const uid = author.dataset.uid;
+        if (uid) navigate(`profile.html?uid=${encodeURIComponent(uid)}`);
+        return;
+    }
+
     const actionTarget = event.target.closest("[data-action]");
     if (!actionTarget) return;
 
     if (actionTarget.dataset.action === "like") {
         actionTarget.disabled = true;
-        try {
-            await toggleLike(actionTarget.dataset.id);
-        } catch (error) {
-            console.error("Like error:", error);
-        } finally {
-            actionTarget.disabled = false;
-        }
+        try { await toggleLike(actionTarget.dataset.id); }
+        catch (error) { console.error("Like error:", error); }
+        finally { actionTarget.disabled = false; }
         return;
     }
 
     if (actionTarget.dataset.action === "focus-comment") {
-        const card = actionTarget.closest(".post");
-        card?.querySelector(".comment-box input")?.focus();
-        return;
-    }
-
-    if (actionTarget.dataset.action === "post-menu") {
-        return;
-    }
-
-    if (actionTarget.classList.contains("post-author")) {
-        const uid = actionTarget.dataset.uid;
-        if (uid) navigate(`profile.html?uid=${encodeURIComponent(uid)}`);
+        actionTarget.closest(".post")?.querySelector(".comment-box input")?.focus();
     }
 });
 
 els.feed.addEventListener("submit", async event => {
     const form = event.target.closest(".comment-box");
     if (!form) return;
-
     event.preventDefault();
-    const input = form.querySelector("input[name=comment]");
-    await addComment(form.dataset.postId, input);
+    await addComment(form.dataset.postId, form.querySelector("input[name=comment]"));
 });
 
 onAuthStateChanged(auth, async user => {
@@ -455,7 +384,6 @@ onAuthStateChanged(auth, async user => {
     }
 
     currentUser = user;
-
     try {
         await loadCurrentUser(user);
         subscribeToFeed();
