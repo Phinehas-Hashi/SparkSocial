@@ -1,117 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>SparkSocial</title>
-
-<link rel="stylesheet" href="style.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080B14">
+    <meta name="description" content="SparkSocial home feed">
+    <title>Home • SparkSocial</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body class="home-body">
 
-<!-- TOP BAR -->
+    <header class="topbar" aria-label="SparkSocial header">
+        <a class="logo" href="home.html" aria-label="SparkSocial home">⚡ SparkSocial</a>
 
-<header class="topbar">
+        <div class="top-icons">
+            <button id="notificationBtn" type="button" aria-label="Notifications" title="Notifications">
+                🔔
+                <span id="notificationBadge" class="notification-badge" hidden>0</span>
+            </button>
+        </div>
+    </header>
 
-    <div class="logo">
+    <main class="feed-container">
+        <section class="home-intro" aria-labelledby="homeTitle">
+            <p class="eyebrow">YOUR SPARK</p>
+            <h1 id="homeTitle">Good to see you.</h1>
+            <p id="homeSubtitle">Share something with your community.</p>
+        </section>
 
-    ⚡ SparkSocial
+        <section class="create-post" aria-labelledby="createPostTitle">
+            <div class="composer-heading">
+                <div id="composerAvatar" class="post-avatar" aria-hidden="true">S</div>
+                <div>
+                    <h2 id="createPostTitle">Create a post</h2>
+                    <p>What’s sparking your mind?</p>
+                </div>
+            </div>
 
-</div>
-
-    <div class="top-icons">
-
-    <div style="position:relative;display:inline-block;">
-
-        <button id="notificationBtn">🔔</button>
-
-        <span id="notificationBadge"
-        style="
-        display:none;
-        position:absolute;
-        top:-5px;
-        right:-5px;
-        background:red;
-        color:white;
-        border-radius:50%;
-        min-width:18px;
-        height:18px;
-        font-size:12px;
-        line-height:18px;
-        text-align:center;">
-        0
-        </span>
-
-    </div>
-
-</div>
-
-</header>
-
-<!-- HOME FEED -->
-
-<main class="feed-container">
-
-    <!-- HOME SCREEN -->
-
-    <section id="homeScreen">
-
-        <div class="create-post">
-
+            <label class="sr-only" for="postContent">Post content</label>
             <textarea
                 id="postContent"
-                placeholder="What's on your mind today?"></textarea>
-                
-                <button id="postBtn" class="primary-btn">
-    🚀 Share Post
-</button>
+                maxlength="2000"
+                rows="4"
+                placeholder="Share an idea, moment, question, or spark..."
+                autocomplete="off"></textarea>
 
-        </div>
+            <div class="composer-footer">
+                <span id="postCounter" class="character-count">0 / 2000</span>
+                <button id="postBtn" class="primary-btn" type="button">
+                    <span>Share spark</span>
+                    <span aria-hidden="true">⚡</span>
+                </button>
+            </div>
+        </section>
 
-        <div id="feed"></div>
+        <section class="feed-section" aria-labelledby="feedTitle">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">COMMUNITY</p>
+                    <h2 id="feedTitle">Latest sparks</h2>
+                </div>
+            </div>
 
-    </section>
+            <div id="feed" aria-live="polite">
+                <div class="feed-state" id="feedLoading">Loading your feed…</div>
+            </div>
+        </section>
+    </main>
 
-    <!-- DISCOVER SCREEN -->
+    <nav class="bottom-nav" aria-label="Primary navigation">
+        <a class="nav-item is-active" href="home.html" aria-current="page">
+            <span aria-hidden="true">⌂</span>
+            <small>Home</small>
+        </a>
+        <a class="nav-item" href="discover.html">
+            <span aria-hidden="true">◉</span>
+            <small>Discover</small>
+        </a>
+        <a class="nav-item nav-create" href="create.html" aria-label="Create">
+            <span aria-hidden="true">＋</span>
+        </a>
+        <a class="nav-item" href="messages.html">
+            <span aria-hidden="true">◇</span>
+            <small>Messages</small>
+        </a>
+        <a class="nav-item" href="profile.html">
+            <span aria-hidden="true">○</span>
+            <small>Profile</small>
+        </a>
+    </nav>
 
-    <section id="discoverScreen" style="display:none;">
-
-        <h2>🌍 Discover</h2>
-
-        <input
-            type="text"
-            id="searchUser"
-            placeholder="Search users...">
-
-        <div id="usersList"></div>
-
-    </section>
-
-</main>
-
-<!-- BOTTOM NAVIGATION -->
-
-<nav class="bottom-nav">
-
-    <button id="homeTab">🏠</button>
-
-    <button id="discoverTab">🌍</button>
-
-    <button id="createTab">➕</button>
-
-    <button id="messagesTab">💬</button>
-
-    <button id="profileTab">👤</button>
-
-</nav>
-
-<script type="module" src="home.js"></script>
-
+    <script type="module" src="home.js"></script>
 </body>
 </html>
