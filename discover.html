@@ -1,115 +1,60 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>SparkSocial Discover</title>
-
-<link rel="stylesheet" href="style.css">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080B14">
+    <title>Discover • SparkSocial</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
-
 <body class="discover-body">
+    <main class="discover-page">
+        <header class="discover-header">
+            <div>
+                <p class="eyebrow">EXPLORE SPARKSOCIAL</p>
+                <h1>Discover</h1>
+                <p>Find people, creators, and new connections.</p>
+            </div>
+        </header>
 
+        <section class="discover-search" aria-label="Search people">
+            <span aria-hidden="true">⌕</span>
+            <label class="sr-only" for="searchUser">Search SparkSocial users</label>
+            <input id="searchUser" type="search" maxlength="80" autocomplete="off" placeholder="Search people by name or username…">
+            <button id="clearSearch" type="button" aria-label="Clear search" hidden>×</button>
+        </section>
 
-<div class="discover-page">
+        <section class="discover-banner" aria-label="Discover introduction">
+            <div class="discover-icon" aria-hidden="true">⚡</div>
+            <div>
+                <p class="banner-kicker">YOUR NEXT CONNECTION</p>
+                <h2>Find your spark</h2>
+                <p>Meet people who make the community brighter.</p>
+            </div>
+        </section>
 
+        <section class="discover-section" aria-labelledby="peopleHeading">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">PEOPLE</p>
+                    <h2 id="peopleHeading">People you may know</h2>
+                </div>
+                <span id="resultsCount" class="results-count"></span>
+            </div>
+            <div id="usersList" class="discover-list" aria-live="polite">
+                <div class="feed-state">Finding people…</div>
+            </div>
+        </section>
+    </main>
 
+    <nav class="bottom-nav" aria-label="Primary navigation">
+        <a class="nav-item" href="home.html"><span aria-hidden="true">⌂</span><small>Home</small></a>
+        <a class="nav-item is-active" href="discover.html" aria-current="page"><span aria-hidden="true">✦</span><small>Discover</small></a>
+        <a class="nav-create" href="create.html" aria-label="Create a post">+</a>
+        <a class="nav-item" href="messages.html"><span aria-hidden="true">◌</span><small>Messages</small></a>
+        <a class="nav-item" href="profile.html"><span aria-hidden="true">○</span><small>Profile</small></a>
+    </nav>
 
-<div class="discover-header">
-
-<h1>
-🌍 Discover
-</h1>
-
-<p>
-Find people, creators, and communities to connect with.
-</p>
-
-</div>
-
-
-
-
-
-<div class="discover-search">
-
-<input 
-id="searchUser"
-placeholder="🔍 Search SparkSocial users...">
-
-</div>
-
-
-
-
-
-
-<div class="discover-banner">
-
-
-<div class="discover-icon">
-
-⚡
-
-</div>
-
-
-<div>
-
-<h2>
-Find Your Spark
-</h2>
-
-<p>
-Discover new people and grow your network.
-</p>
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-
-<div class="section-title">
-
-<h2>
-✨ People You May Know
-</h2>
-
-</div>
-
-
-
-<div id="usersList">
-
-Loading users...
-
-</div>
-
-
-
-
-
-
-</div>
-
-
-
-<script type="module" src="discover.js"></script>
-
-
+    <script type="module" src="discover.js"></script>
 </body>
-
 </html>
