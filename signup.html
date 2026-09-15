@@ -1,78 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>⚡ SparkSocial | Sign Up</title>
-
-    <link rel="stylesheet" href="style.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#030612">
+  <title>⚡ SparkSocial | Sign Up</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="spark-theme.css">
 </head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-card">
+      <header class="auth-brand">
+        <h1 class="spark-brand"><span class="spark-mark">⚡</span>SparkSocial</h1>
+        <p>Connect · Create · Grow</p>
+      </header>
 
-<body>
+      <h2 class="auth-title">Create your account</h2>
+      <p class="auth-subtitle">Join a community built around real connections and shared sparks.</p>
 
-<div class="auth-container">
+      <form id="signupForm" class="auth-form" novalidate>
+        <label class="auth-field">
+          <input id="fullName" name="fullName" type="text" autocomplete="name" placeholder="Full name" maxlength="80" required>
+        </label>
+        <label class="auth-field">
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="Email address" required>
+        </label>
+        <label class="auth-field">
+          <input id="password" name="password" type="password" autocomplete="new-password" placeholder="Create a password" minlength="6" required>
+        </label>
+        <p id="signupError" class="auth-error" hidden role="alert"></p>
+        <button id="signupButton" class="auth-submit" type="submit">Create Account <span>→</span></button>
+      </form>
 
-    <img
-        src="⚡ SparkSocial.jpg"
-        alt="⚡ SparkSocial Logo"
-        class="auth-logo">
+      <p class="auth-switch">Already have an account? <a href="login.html">Sign in</a></p>
+    </section>
+  </main>
 
-    <h1>Join ⚡ SparkSocial</h1>
-
-<p class="auth-subtitle">
-Connect, create, share, and discover amazing people around the world.
-</p>
-
-    <form id="signupForm">
-
-        <input
-    id="fullName"
-    type="text"
-    placeholder="Your full name"
-    required>
-
-        <input
-    id="email"
-    type="email"
-    placeholder="Enter your email"
-    required>
-
-        <input
-    id="password"
-    type="password"
-    placeholder="Create a secure password"
-    required>
-
-        <button
-            class="primary-btn"
-            type="submit">
-
-            Create My Account
-
-        </button>
-
-    </form>
-
-    <p class="switch-page">
-
-        Already have an account?
-
-        <a href="login.html">
-
-            Login
-
-        </a>
-
-    </p>
-
-</div>
-
-<script type="module" src="auth.js"></script>
-
+  <script type="module" src="auth.js"></script>
 </body>
 </html>
