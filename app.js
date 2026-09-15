@@ -648,15 +648,31 @@ async function creator() {
   $('#creatorName').textContent = displayName(meData);
   $('#creatorXP').textContent = meData.sparkXP || 0;
   $('#creatorLevel').textContent = meData.sparkLevel || 1;
-  $('#creatorFollowers').textContent = meData.followersCount || 0;
-  $('#creatorPosts').textContent = meData.postsCount || 0;
-  $('#enableCreator').onclick = async () => {
-    const button = $('#enableCreator'); button.disabled = true;
+
+  const [followers, posts, creatorProfile] = await Promise.all([
+    getCountFromServer(query(collection(db, 'follows'), where('followingId', '==', me.uid))),
+    getCountFromServer(query(collection(db, 'posts'), where('authorId', '==', me.uid))),
+    getDoc(doc(db, 'creatorProfiles', me.uid))
+  ]);
+  $('#creatorFollowers').textContent = followers.data().count;
+  $('#creatorPosts').textContent = posts.data().count;
+
+  const button = $('#enableCreator');
+  if (creatorProfile.exists() && creatorProfile.data().enabled === true) {
+    button.textContent = 'Creator Mode Enabled';
+    button.disabled = true;
+  }
+
+  button.onclick = async () => {
+    button.disabled = true;
     try {
       await setDoc(doc(db, 'creatorProfiles', me.uid), { userId: me.uid, enabled: true, category: 'General', description: '', totalViews: 0, totalLikes: 0, totalLiveSessions: 0, totalLiveMinutes: 0, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
+      button.textContent = 'Creator Mode Enabled';
       status(document.querySelector('.container'), 'Creator mode enabled ✨', 'notice');
-    } catch (error) { status(document.querySelector('.container'), errorText(error), 'error'); }
-    finally { button.disabled = false; }
+    } catch (error) {
+      status(document.querySelector('.container'), errorText(error), 'error');
+      button.disabled = false;
+    }
   };
 }
 
