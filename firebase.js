@@ -11,14 +11,17 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 
+// SparkSocial Firebase Web App configuration.
+// These client-side values are expected to be present in a Firebase web app.
+// Security is enforced by Firebase Authentication and Firestore Security Rules.
 const firebaseConfig = {
-    apiKey: "AIzaSyBH_cc7KBT3YASiHH56OkwDhETUo_aUhH8",
-    authDomain: "lovena-d8328.firebaseapp.com",
-    projectId: "lovena-d8328",
-    storageBucket: "lovena-d8328.firebasestorage.app",
-    messagingSenderId: "105578962519",
-    appId: "1:105578962519:web:8e59c66880e975c71a4d12",
-    measurementId: "G-KVY8Y73J3P"
+    apiKey: "AIzaSyDY46sh9jAyNtOUs_fCMuPgSGeaQn4Arxs",
+    authDomain: "sparksocial-af6c8.firebaseapp.com",
+    projectId: "sparksocial-af6c8",
+    storageBucket: "sparksocial-af6c8.firebasestorage.app",
+    messagingSenderId: "96819653349",
+    appId: "1:96819653349:web:19bec91d9503b2ba3ec20c",
+    measurementId: "G-3KELZJDMR8"
 };
 
 
