@@ -1,11 +1,19 @@
 import { auth, db } from "./firebase.js";
-
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-
 import {
-    addDoc, arrayRemove, arrayUnion, collection, doc, getDoc,
-    increment, onSnapshot, orderBy, query, serverTimestamp,
-    updateDoc, where
+    addDoc,
+    arrayRemove,
+    arrayUnion,
+    collection,
+    doc,
+    getDoc,
+    increment,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
 const els = {
@@ -25,19 +33,14 @@ let unsubscribeFeed = null;
 let unsubscribeNotifications = null;
 const commentUnsubscribers = new Map();
 
-function navigate(path) { window.location.assign(path); }
+const navigate = (path) => window.location.assign(path);
 
 function displayName() {
     return currentUserData.fullname || currentUser?.displayName || "Spark user";
 }
 
 function initials(name = "SparkSocial") {
-    return name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "S";
-}
-
-function setBusy(button, busy, label = "Share spark") {
-    button.disabled = busy;
-    button.querySelector("span").textContent = busy ? "Sharing…" : label;
+    return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "S";
 }
 
 function showFeedState(message) {
@@ -62,29 +65,30 @@ function createAvatar(user, small = false) {
     } else {
         avatar.textContent = initials(user.fullname || user.displayName);
     }
+
     return avatar;
 }
 
-function createUserButton(user, fallbackName = "Spark user") {
+function createUserButton(user) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "post-author";
     button.dataset.uid = user.uid || "";
+
     button.appendChild(createAvatar(user, true));
 
     const info = document.createElement("span");
     info.className = "post-author-info";
 
     const name = document.createElement("strong");
-    name.textContent = user.fullname || user.displayName || fallbackName;
+    name.textContent = user.fullname || user.displayName || "Spark user";
 
+    const meta = document.createElement("small");
     const badges = [];
-    if (user.verified) badges.push("✓");
+    if (user.verified) badges.push("Verified");
     if (user.founder) badges.push("Founder");
     if (user.ceo) badges.push("CEO");
     if (user.premium) badges.push("Premium");
-
-    const meta = document.createElement("small");
     meta.textContent = badges.length ? badges.join(" • ") : "SparkSocial member";
 
     info.append(name, meta);
@@ -100,23 +104,24 @@ function createPostCard(postId, post) {
     const header = document.createElement("div");
     header.className = "post-header";
 
-    const author = createUserButton({
-        uid: post.uid,
-        fullname: post.username,
-        photoURL: post.photoURL,
-        verified: post.verified,
-        founder: post.founder,
-        ceo: post.ceo,
-        premium: post.premium
-    });
+    header.append(
+        createUserButton({
+            uid: post.uid,
+            fullname: post.username,
+            photoURL: post.photoURL,
+            verified: post.verified,
+            founder: post.founder,
+            ceo: post.ceo,
+            premium: post.premium
+        })
+    );
 
     const menu = document.createElement("button");
     menu.type = "button";
     menu.className = "post-menu";
     menu.textContent = "•••";
     menu.setAttribute("aria-label", "Post options");
-    menu.dataset.action = "post-menu";
-    header.append(author, menu);
+    header.appendChild(menu);
 
     const body = document.createElement("div");
     body.className = "post-body";
@@ -150,9 +155,9 @@ function createPostCard(postId, post) {
     commentsList.className = "comments-list";
     commentsList.id = `comments-${postId}`;
 
-    const commentBox = document.createElement("form");
-    commentBox.className = "comment-box";
-    commentBox.dataset.postId = postId;
+    const commentForm = document.createElement("form");
+    commentForm.className = "comment-box";
+    commentForm.dataset.postId = postId;
 
     const input = document.createElement("input");
     input.type = "text";
@@ -166,29 +171,47 @@ function createPostCard(postId, post) {
     send.textContent = "➤";
     send.setAttribute("aria-label", "Send comment");
 
-    commentBox.append(input, send);
-    commentsSection.append(commentsList, commentBox);
+    commentForm.append(input, send);
+    commentsSection.append(commentsList, commentForm);
     card.append(header, body, actions, commentsSection);
+
     return card;
 }
 
 async function loadCurrentUser(user) {
-    const snapshot = await getDoc(doc(db, "users", user.uid));
-    currentUserData = snapshot.exists() ? snapshot.data() : {};
+    try {
+        const snapshot = await getDoc(doc(db, "users", user.uid));
+        currentUserData = snapshot.exists() ? snapshot.data() : {};
+    } catch (error) {
+        // A missing/blocked profile must not prevent the Home page from opening.
+        console.error("Profile read failed:", error);
+        currentUserData = {};
+    }
 
     const name = displayName();
-    els.homeSubtitle.textContent = `Welcome back, ${name.split(" ")[0]}. What’s sparking your mind?`;
-    els.composerAvatar.replaceChildren();
-    els.composerAvatar.textContent = initials(name);
+    if (els.homeSubtitle) {
+        els.homeSubtitle.textContent = `Welcome back, ${name.split(" ")[0]}. What’s sparking your mind?`;
+    }
+
+    if (els.composerAvatar) {
+        els.composerAvatar.replaceChildren();
+        if (currentUserData.photoURL || user.photoURL) {
+            els.composerAvatar.appendChild(createAvatar({ photoURL: currentUserData.photoURL || user.photoURL, fullname: name }));
+        } else {
+            els.composerAvatar.textContent = initials(name);
+        }
+    }
 }
 
 function subscribeToFeed() {
     if (unsubscribeFeed) unsubscribeFeed();
 
+    showFeedState("Loading your feed…");
+
     const postsQuery = query(collection(db, "posts"), orderBy("createdAt", "desc"));
 
-    unsubscribeFeed = onSnapshot(postsQuery, snapshot => {
-        commentUnsubscribers.forEach(unsubscribe => unsubscribe());
+    unsubscribeFeed = onSnapshot(postsQuery, (snapshot) => {
+        commentUnsubscribers.forEach((unsubscribe) => unsubscribe());
         commentUnsubscribers.clear();
 
         if (snapshot.empty) {
@@ -197,30 +220,34 @@ function subscribeToFeed() {
         }
 
         const fragment = document.createDocumentFragment();
-        snapshot.forEach(postSnapshot => fragment.appendChild(createPostCard(postSnapshot.id, postSnapshot.data())));
+        snapshot.forEach((postSnapshot) => {
+            fragment.appendChild(createPostCard(postSnapshot.id, postSnapshot.data()));
+        });
         els.feed.replaceChildren(fragment);
 
-        snapshot.forEach(postSnapshot => subscribeToComments(postSnapshot.id));
-    }, error => {
+        snapshot.forEach((postSnapshot) => subscribeToComments(postSnapshot.id));
+    }, (error) => {
         console.error("Feed error:", error);
-        showFeedState("We couldn’t load the feed. Please try again.");
+        showFeedState("We couldn’t load the feed right now. Please try again.");
     });
 }
 
 function subscribeToComments(postId) {
-    const commentsQuery = query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "asc"));
+    const commentsQuery = query(
+        collection(db, "posts", postId, "comments"),
+        orderBy("createdAt", "asc")
+    );
 
-    const unsubscribe = onSnapshot(commentsQuery, snapshot => {
+    const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
         const list = document.getElementById(`comments-${postId}`);
         if (!list) return;
 
         const fragment = document.createDocumentFragment();
-        snapshot.forEach(commentSnapshot => {
+        snapshot.forEach((commentSnapshot) => {
             const comment = commentSnapshot.data();
             const item = document.createElement("div");
             item.className = "comment";
 
-            const avatar = createAvatar({ fullname: comment.username }, true);
             const content = document.createElement("div");
             const name = document.createElement("strong");
             name.textContent = comment.username || "Spark user";
@@ -228,24 +255,31 @@ function subscribeToComments(postId) {
             text.textContent = comment.text || "";
 
             content.append(name, text);
-            item.append(avatar, content);
+            item.append(createAvatar({ fullname: comment.username }, true), content);
             fragment.appendChild(item);
         });
+
         list.replaceChildren(fragment);
-    }, error => console.error(`Comments error for ${postId}:`, error));
+    }, (error) => {
+        console.error(`Comments error for ${postId}:`, error);
+    });
 
     commentUnsubscribers.set(postId, unsubscribe);
 }
 
 async function createPost() {
     if (!currentUser) return;
+
     const text = els.postContent.value.trim();
     if (!text) {
         els.postContent.focus();
         return;
     }
 
-    setBusy(els.postBtn, true);
+    els.postBtn.disabled = true;
+    const label = els.postBtn.querySelector("span");
+    if (label) label.textContent = "Sharing…";
+
     try {
         await addDoc(collection(db, "posts"), {
             uid: currentUser.uid,
@@ -260,13 +294,15 @@ async function createPost() {
             likedBy: [],
             createdAt: serverTimestamp()
         });
+
         els.postContent.value = "";
         updateCounter();
     } catch (error) {
         console.error("Create post error:", error);
         alert("We couldn’t share your spark. Please try again.");
     } finally {
-        setBusy(els.postBtn, false);
+        els.postBtn.disabled = false;
+        if (label) label.textContent = "Share spark";
     }
 }
 
@@ -305,6 +341,7 @@ async function addComment(postId, input) {
 
     const button = input.parentElement.querySelector("button");
     button.disabled = true;
+
     try {
         await addDoc(collection(db, "posts", postId, "comments"), {
             uid: currentUser.uid,
@@ -331,11 +368,14 @@ function subscribeToNotifications() {
         where("read", "==", false)
     );
 
-    unsubscribeNotifications = onSnapshot(notificationQuery, snapshot => {
+    unsubscribeNotifications = onSnapshot(notificationQuery, (snapshot) => {
         const count = snapshot.size;
         els.notificationBadge.textContent = count > 99 ? "99+" : String(count);
         els.notificationBadge.hidden = count === 0;
-    }, error => console.error("Notification error:", error));
+    }, (error) => {
+        console.error("Notification error:", error);
+        els.notificationBadge.hidden = true;
+    });
 }
 
 function updateCounter() {
@@ -346,7 +386,7 @@ els.postContent.addEventListener("input", updateCounter);
 els.postBtn.addEventListener("click", createPost);
 els.notificationBtn.addEventListener("click", () => navigate("notifications.html"));
 
-els.feed.addEventListener("click", async event => {
+els.feed.addEventListener("click", async (event) => {
     const author = event.target.closest(".post-author");
     if (author) {
         const uid = author.dataset.uid;
@@ -359,10 +399,13 @@ els.feed.addEventListener("click", async event => {
 
     if (actionTarget.dataset.action === "like") {
         actionTarget.disabled = true;
-        try { await toggleLike(actionTarget.dataset.id); }
-        catch (error) { console.error("Like error:", error); }
-        finally { actionTarget.disabled = false; }
-        return;
+        try {
+            await toggleLike(actionTarget.dataset.id);
+        } catch (error) {
+            console.error("Like error:", error);
+        } finally {
+            actionTarget.disabled = false;
+        }
     }
 
     if (actionTarget.dataset.action === "focus-comment") {
@@ -370,32 +413,30 @@ els.feed.addEventListener("click", async event => {
     }
 });
 
-els.feed.addEventListener("submit", async event => {
+els.feed.addEventListener("submit", async (event) => {
     const form = event.target.closest(".comment-box");
     if (!form) return;
     event.preventDefault();
     await addComment(form.dataset.postId, form.querySelector("input[name=comment]"));
 });
 
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, async (user) => {
     if (!user) {
         navigate("login.html");
         return;
     }
 
     currentUser = user;
-    try {
-        await loadCurrentUser(user);
-        subscribeToFeed();
-        subscribeToNotifications();
-    } catch (error) {
-        console.error("Home initialization error:", error);
-        showFeedState("SparkSocial couldn’t finish loading. Please refresh.");
-    }
+    await loadCurrentUser(user);
+
+    // Each subsystem owns its own failure state. One Firestore issue must not
+    // turn the entire Home page into a generic "failed to load" screen.
+    subscribeToFeed();
+    subscribeToNotifications();
 });
 
 window.addEventListener("beforeunload", () => {
-    if (unsubscribeFeed) unsubscribeFeed();
-    if (unsubscribeNotifications) unsubscribeNotifications();
-    commentUnsubscribers.forEach(unsubscribe => unsubscribe());
+    unsubscribeFeed?.();
+    unsubscribeNotifications?.();
+    commentUnsubscribers.forEach((unsubscribe) => unsubscribe());
 });
