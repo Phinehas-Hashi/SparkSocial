@@ -1,6 +1,6 @@
 import { auth, db } from './firebase.js';
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
-import { doc, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
+import { deleteDoc, doc, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 const form = document.getElementById('signupForm');
 if (!form) throw new Error('Signup form not found.');
@@ -46,27 +46,49 @@ form.addEventListener('submit', async event => {
   button.disabled = true;
   button.querySelector('.button-label').textContent = 'Creating account…';
   let user = null;
+  let profileCreated = false;
   try {
     user = (await createUserWithEmailAndPassword(auth, email, password)).user;
     await updateProfile(user, { displayName });
+
     await runTransaction(db, async transaction => {
       const usernameRef = doc(db, 'usernames', username);
       const existing = await transaction.get(usernameRef);
       if (existing.exists()) throw new Error('USERNAME_TAKEN');
       transaction.set(usernameRef, { uid: user.uid, username, createdAt: serverTimestamp() });
       transaction.set(doc(db, 'users', user.uid), {
-        uid: user.uid, username, usernameLower: username,
-        displayName, displayNameLower: displayName.toLowerCase(),
-        photoURL: '', coverURL: '', bio: "Hey there 👋 I'm using SparkSocial.",
-        location: null, accountType: 'user', isVerified: false, isPrivate: false,
-        followersCount: 0, followingCount: 0, postsCount: 0, sparkXP: 0, sparkLevel: 1,
-        createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+        uid: user.uid,
+        username,
+        usernameLower: username,
+        displayName,
+        displayNameLower: displayName.toLowerCase(),
+        photoURL: '',
+        coverURL: '',
+        bio: "Hey there 👋 I'm using SparkSocial.",
+        location: null,
+        accountType: 'user',
+        isVerified: false,
+        isPrivate: false,
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        sparkXP: 0,
+        sparkLevel: 1,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
     });
+    profileCreated = true;
+
     await sendEmailVerification(user);
     location.replace('verify-email.html');
   } catch (error) {
+    if (profileCreated && user) {
+      await deleteDoc(doc(db, 'usernames', username)).catch(() => {});
+      await deleteDoc(doc(db, 'users', user.uid)).catch(() => {});
+    }
     await user?.delete().catch(() => {});
+
     if (error?.message === 'USERNAME_TAKEN') showError('That username is already taken. Choose another one.');
     else {
       console.error('SparkSocial signup error:', error);
