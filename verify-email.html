@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#030612">
+  <title>SparkSocial | Verify Email</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="spark-theme.css">
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-card verification-card" aria-labelledby="verifyTitle">
+      <header class="auth-brand">
+        <div class="auth-logo verification-logo" aria-hidden="true">✉</div>
+        <h1 class="spark-brand">SparkSocial</h1>
+        <p>One quick step before you enter.</p>
+      </header>
+      <div class="auth-heading">
+        <span class="auth-kicker">EMAIL VERIFICATION</span>
+        <h2 id="verifyTitle" class="auth-title">Check your inbox.</h2>
+        <p class="auth-subtitle">We've sent a verification link to <strong id="verificationEmail">your email address</strong>. Verify it, then come back here.</p>
+      </div>
+      <div class="verification-status" id="verificationStatus" role="status">Waiting for verification…</div>
+      <div class="auth-form verification-actions">
+        <button id="checkVerification" class="auth-submit" type="button"><span class="button-label">I've Verified My Email</span><span class="button-arrow">✓</span></button>
+        <button id="resendVerification" class="auth-secondary-button" type="button">Resend verification email</button>
+      </div>
+      <p id="verificationError" class="auth-error" hidden role="alert"></p>
+      <button id="signOutButton" class="auth-text-button" type="button">Use a different account</button>
+      <p class="auth-legal">SparkSocial access stays locked until Firebase confirms that your email address is verified.</p>
+    </section>
+  </main>
+  <script type="module" src="verify-email.js"></script>
+</body>
+</html>
