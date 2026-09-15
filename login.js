@@ -1,15 +1,12 @@
 import { auth } from "./firebase.js";
 import {
   signInWithEmailAndPassword,
-  sendEmailVerification,
-  signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const form = document.getElementById("loginForm");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
-const rememberInput = document.getElementById("rememberMe");
 const button = document.getElementById("loginButton");
 const errorBox = document.getElementById("loginError");
 const togglePassword = document.getElementById("togglePassword");
@@ -54,17 +51,7 @@ form.addEventListener("submit", async (event) => {
 
   try {
     const credential = await signInWithEmailAndPassword(auth, email, password);
-    const user = credential.user;
-
-    if (!user.emailVerified) {
-      // A verification email is available again from the verification screen.
-      await signOut(auth);
-      sessionStorage.setItem("sparkVerificationEmail", email);
-      location.replace("verify-email.html");
-      return;
-    }
-
-    location.replace("home.html");
+    location.replace(credential.user.emailVerified ? "home.html" : "verify-email.html");
   } catch (error) {
     console.error("SparkSocial login error:", error);
     showError(messages[error?.code] || "Unable to sign in. Please try again.");
