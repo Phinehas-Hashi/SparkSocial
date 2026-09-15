@@ -1,61 +1,7 @@
-import { auth } from "./firebase.js";
-import {
-  signInWithEmailAndPassword,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-
-const form = document.getElementById("loginForm");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const button = document.getElementById("loginButton");
-const errorBox = document.getElementById("loginError");
-const togglePassword = document.getElementById("togglePassword");
-
-const messages = {
-  "auth/invalid-credential": "Incorrect email or password.",
-  "auth/invalid-email": "Please enter a valid email address.",
-  "auth/user-disabled": "This account has been disabled.",
-  "auth/too-many-requests": "Too many attempts. Please wait and try again.",
-  "auth/network-request-failed": "Network error. Check your connection and try again.",
-  "auth/user-not-found": "Incorrect email or password."
-};
-
-function showError(message) {
-  errorBox.textContent = message;
-  errorBox.hidden = false;
-}
-
-if (togglePassword) {
-  togglePassword.addEventListener("click", () => {
-    const showing = passwordInput.type === "text";
-    passwordInput.type = showing ? "password" : "text";
-    togglePassword.textContent = showing ? "Show" : "Hide";
-    togglePassword.setAttribute("aria-label", showing ? "Show password" : "Hide password");
-  });
-}
-
-onAuthStateChanged(auth, (user) => {
-  if (user) location.replace(user.emailVerified ? "home.html" : "verify-email.html");
-});
-
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  errorBox.hidden = true;
-
-  const email = emailInput.value.trim().toLowerCase();
-  const password = passwordInput.value;
-  if (!email || !password) return showError("Please enter your email and password.");
-
-  button.disabled = true;
-  button.querySelector(".button-label").textContent = "Signing in…";
-
-  try {
-    const credential = await signInWithEmailAndPassword(auth, email, password);
-    location.replace(credential.user.emailVerified ? "home.html" : "verify-email.html");
-  } catch (error) {
-    console.error("SparkSocial login error:", error);
-    showError(messages[error?.code] || "Unable to sign in. Please try again.");
-    button.disabled = false;
-    button.querySelector(".button-label").textContent = "Sign In";
-  }
-});
+import { auth } from './firebase.js';
+import { signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
+const $=id=>document.getElementById(id);const form=$('loginForm'),email=$('email'),password=$('password'),remember=$('rememberMe'),button=$('loginButton'),error=$('loginError'),toggle=$('togglePassword');
+const messages={'auth/invalid-credential':'Incorrect email or password.','auth/invalid-email':'Please enter a valid email address.','auth/user-disabled':'This account has been disabled.','auth/too-many-requests':'Too many attempts. Please wait and try again.','auth/network-request-failed':'Network error. Check your connection and try again.','auth/user-not-found':'Incorrect email or password.'};
+const show=m=>{error.textContent=m;error.hidden=false};if(toggle)toggle.onclick=()=>{const on=password.type==='text';password.type=on?'password':'text';toggle.textContent=on?'Show':'Hide'};
+onAuthStateChanged(auth,u=>{if(u)location.replace(u.emailVerified?'home.html':'verify-email.html')});
+form.addEventListener('submit',async e=>{e.preventDefault();error.hidden=true;const mail=email.value.trim().toLowerCase(),pass=password.value;if(!mail||!pass)return show('Please enter your email and password.');button.disabled=true;button.querySelector('.button-label').textContent='Signing in…';try{await setPersistence(auth,remember?.checked?browserLocalPersistence:browserSessionPersistence);const c=await signInWithEmailAndPassword(auth,mail,pass);await c.user.reload();location.replace(c.user.emailVerified?'home.html':'verify-email.html')}catch(err){console.error(err);show(messages[err?.code]||'Unable to sign in. Please try again.');button.disabled=false;button.querySelector('.button-label').textContent='Sign In'}});
