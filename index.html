@@ -12,160 +12,75 @@
   <canvas id="sparkCanvas" aria-hidden="true"></canvas>
   <div class="splash-vignette" aria-hidden="true"></div>
   <div id="splashFlash" class="splash-flash" aria-hidden="true"></div>
-
   <main class="splash-logo" id="splashLogo" aria-label="SparkSocial">
     <h1 class="spark-brand"><span class="spark-mark">⚡</span>SparkSocial</h1>
     <div class="spark-subtitle">Connect · Create · Grow</div>
   </main>
-
   <div class="splash-status" id="splashStatus">Igniting your social world</div>
-
   <script type="module">
-    import { auth } from "./firebase.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+    import { auth } from './firebase.js';
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
 
-    const canvas = document.getElementById("sparkCanvas");
-    const ctx = canvas.getContext("2d");
-    const logo = document.getElementById("splashLogo");
-    const flash = document.getElementById("splashFlash");
-    const status = document.getElementById("splashStatus");
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    let width = 0;
-    let height = 0;
-    let particles = [];
-    let startTime = performance.now();
-    let authUser = undefined;
-    let authReady = false;
-    let redirected = false;
-
+    const canvas = document.getElementById('sparkCanvas');
+    const ctx = canvas.getContext('2d');
+    const logo = document.getElementById('splashLogo');
+    const flash = document.getElementById('splashFlash');
+    const status = document.getElementById('splashStatus');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let width = 0, height = 0, particles = [], startTime = performance.now(), authUser, authReady = false, redirected = false;
     const random = (min, max) => Math.random() * (max - min) + min;
 
     function resize() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      width = window.innerWidth; height = window.innerHeight;
+      canvas.width = width * dpr; canvas.height = height * dpr;
+      canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-
     function createParticles() {
-      const count = Math.min(520, Math.max(220, Math.floor((width * height) / 5000)));
+      const count = Math.min(360, Math.max(140, Math.floor((width * height) / 6500)));
       particles = Array.from({ length: count }, (_, index) => {
         const fromLeft = index % 2 === 0;
-        const edgeY = random(-height * .15, height * 1.15);
-        const edgeX = fromLeft ? random(-width * .16, width * .02) : random(width * .98, width * 1.16);
-        const angleNoise = random(-.55, .55);
-        return {
-          x: edgeX,
-          y: edgeY,
-          startX: edgeX,
-          startY: edgeY,
-          side: fromLeft ? -1 : 1,
-          speed: random(.65, 1.65),
-          size: random(.55, 1.8),
-          length: random(8, 30),
-          delay: random(0, 1800),
-          hue: fromLeft ? "blue" : "purple",
-          wobble: angleNoise
-        };
+        const x = fromLeft ? random(-width * .16, width * .02) : random(width * .98, width * 1.16);
+        return { x, y: random(-height * .15, height * 1.15), side: fromLeft ? -1 : 1, speed: random(.65, 1.65), size: random(.55, 1.8), length: random(8, 30), delay: random(0, 1800), hue: fromLeft ? 'blue' : 'purple', wobble: random(-.55, .55) };
       });
     }
-
     function draw(now) {
       const elapsed = now - startTime;
       ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "rgba(1,4,12,.30)";
-      ctx.fillRect(0, 0, width, height);
-
-      const cx = width / 2;
-      const cy = height / 2;
+      ctx.fillStyle = 'rgba(1,4,12,.30)'; ctx.fillRect(0, 0, width, height);
+      const cx = width / 2, cy = height / 2;
       const progress = Math.min(1, Math.max(0, (elapsed - 350) / 2700));
       const eased = 1 - Math.pow(1 - progress, 3);
-
       for (const p of particles) {
         const local = Math.max(0, Math.min(1, (elapsed - p.delay) / 2500));
         const travel = 0.04 + local * .96;
         const targetX = cx + p.side * (1 - local) * 8;
         const targetY = cy + Math.sin(local * Math.PI * 2 + p.wobble) * (1 - local) * height * .12;
-        const x = p.startX + (targetX - p.startX) * travel;
-        const y = p.startY + (targetY - p.startY) * travel;
-        const alpha = .12 + local * .82;
-        const tailX = x - p.side * p.length * p.speed;
-        const tailY = y + (cy - y) * .018;
-
+        const x = p.x + (targetX - p.x) * travel, y = p.y + (targetY - p.y) * travel;
+        const alpha = .12 + local * .82, tailX = x - p.side * p.length * p.speed, tailY = y + (cy - y) * .018;
         const gradient = ctx.createLinearGradient(tailX, tailY, x, y);
-        if (p.hue === "blue") {
-          gradient.addColorStop(0, `rgba(35,105,255,0)`);
-          gradient.addColorStop(.7, `rgba(78,178,255,${alpha * .55})`);
-          gradient.addColorStop(1, `rgba(225,248,255,${alpha})`);
-        } else {
-          gradient.addColorStop(0, `rgba(125,55,255,0)`);
-          gradient.addColorStop(.7, `rgba(160,105,255,${alpha * .55})`);
-          gradient.addColorStop(1, `rgba(238,226,255,${alpha})`);
-        }
-
-        ctx.beginPath();
-        ctx.moveTo(tailX, tailY);
-        ctx.lineTo(x, y);
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = p.size;
-        ctx.stroke();
-
-        if (local > .65) {
-          ctx.beginPath();
-          ctx.arc(x, y, p.size * 1.25, 0, Math.PI * 2);
-          ctx.fillStyle = p.hue === "blue" ? `rgba(180,235,255,${alpha})` : `rgba(210,180,255,${alpha})`;
-          ctx.fill();
-        }
+        if (p.hue === 'blue') { gradient.addColorStop(0, 'rgba(35,105,255,0)'); gradient.addColorStop(.7, `rgba(78,178,255,${alpha * .55})`); gradient.addColorStop(1, `rgba(225,248,255,${alpha})`); }
+        else { gradient.addColorStop(0, 'rgba(125,55,255,0)'); gradient.addColorStop(.7, `rgba(160,105,255,${alpha * .55})`); gradient.addColorStop(1, `rgba(238,226,255,${alpha})`); }
+        ctx.beginPath(); ctx.moveTo(tailX, tailY); ctx.lineTo(x, y); ctx.strokeStyle = gradient; ctx.lineWidth = p.size; ctx.stroke();
       }
-
       if (progress > .35) {
         const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(width, height) * .18);
-        glow.addColorStop(0, `rgba(220,248,255,${.20 * eased})`);
-        glow.addColorStop(.25, `rgba(89,176,255,${.11 * eased})`);
-        glow.addColorStop(1, "rgba(130,70,255,0)");
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, width, height);
+        glow.addColorStop(0, `rgba(220,248,255,${.20 * eased})`); glow.addColorStop(.25, `rgba(89,176,255,${.11 * eased})`); glow.addColorStop(1, 'rgba(130,70,255,0)');
+        ctx.fillStyle = glow; ctx.fillRect(0, 0, width, height);
       }
-
       requestAnimationFrame(draw);
     }
-
-    function reveal() {
-      logo.classList.add("revealed");
-      flash.classList.remove("burst");
-      void flash.offsetWidth;
-      flash.classList.add("burst");
-      status.textContent = "Welcome to SparkSocial";
-    }
-
+    function reveal() { logo.classList.add('revealed'); flash.classList.remove('burst'); void flash.offsetWidth; flash.classList.add('burst'); status.textContent = 'Welcome to SparkSocial'; }
     function redirect() {
       if (redirected || !authReady) return;
       redirected = true;
-      const destination = authUser ? "home.html" : "login.html";
+      const destination = authUser ? (authUser.emailVerified ? 'home.html' : 'verify-email.html') : 'login.html';
       setTimeout(() => location.replace(destination), reduceMotion ? 900 : 3600);
     }
-
-    resize();
-    createParticles();
-    window.addEventListener("resize", () => { resize(); createParticles(); });
-    requestAnimationFrame(draw);
-
-    if (reduceMotion) {
-      setTimeout(reveal, 250);
-    } else {
-      setTimeout(reveal, 2950);
-    }
-
-    onAuthStateChanged(auth, (user) => {
-      authUser = user;
-      authReady = true;
-      redirect();
-    });
+    resize(); createParticles(); window.addEventListener('resize', () => { resize(); createParticles(); }); requestAnimationFrame(draw);
+    setTimeout(reveal, reduceMotion ? 250 : 2950);
+    onAuthStateChanged(auth, user => { authUser = user; authReady = true; redirect(); });
   </script>
 </body>
 </html>
