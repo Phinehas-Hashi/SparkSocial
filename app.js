@@ -1,6 +1,6 @@
 import { auth, db } from './firebase.js';
 import { onAuthStateChanged, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
-import { addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, increment, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
+import { addDoc, collection, deleteDoc, doc, getCountFromServer, getDoc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 const page = document.body.dataset.page || '';
 let me = null;
@@ -139,6 +139,14 @@ async function notify(recipientId, type, extra = {}) {
   }
 }
 
+async function getPostCounts(postId) {
+  const [likes, comments] = await Promise.all([
+    getCountFromServer(query(collection(db, 'postLikes'), where('postId', '==', postId))),
+    getCountFromServer(collection(db, 'posts', postId, 'comments'))
+  ]);
+  return { likes: likes.data().count, comments: comments.data().count };
+}
+
 function postCard(id, post) {
   const article = document.createElement('article');
   article.className = 'post';
@@ -194,11 +202,17 @@ function postCard(id, post) {
   article.append(comments);
 
   const likeRef = doc(db, 'postLikes', `${id}_${me.uid}`);
-  getDoc(likeRef).then(snapshot => {
-    like.classList.toggle('active', snapshot.exists());
-    like.textContent = `${snapshot.exists() ? '♥' : '♡'} ${Number(post.likesCount || 0)}`;
-  }).catch(() => { like.textContent = `♡ ${Number(post.likesCount || 0)}`; });
-  commentButton.textContent = `💬 ${Number(post.commentsCount || 0)}`;
+  let counts = { likes: Number(post.likesCount || 0), comments: Number(post.commentsCount || 0) };
+  const renderCounts = () => {
+    like.textContent = `${like.classList.contains('active') ? '♥' : '♡'} ${counts.likes}`;
+    commentButton.textContent = `💬 ${counts.comments}`;
+  };
+
+  Promise.all([getDoc(likeRef), getPostCounts(id)]).then(([liked, freshCounts]) => {
+    like.classList.toggle('active', liked.exists());
+    counts = freshCounts;
+    renderCounts();
+  }).catch(() => renderCounts());
 
   like.onclick = async () => {
     like.disabled = true;
@@ -207,13 +221,13 @@ function postCard(id, post) {
       if (existing.exists()) {
         await deleteDoc(likeRef);
         like.classList.remove('active');
-        like.textContent = `♡ ${Number(post.likesCount || 0)}`;
       } else {
         await setDoc(likeRef, { postId: id, userId: me.uid, createdAt: serverTimestamp() });
         like.classList.add('active');
-        like.textContent = `♥ ${Number(post.likesCount || 0) + 1}`;
         await notify(post.authorId, 'liked your Spark', { postId: id });
       }
+      counts = await getPostCounts(id);
+      renderCounts();
     } catch (error) {
       alert(errorText(error));
     } finally {
@@ -244,6 +258,8 @@ function postCard(id, post) {
         row.append(box);
         list.append(row);
       });
+      counts.comments = snapshot.size;
+      renderCounts();
     }, error => status(list, errorText(error), 'error'));
   };
 
@@ -264,6 +280,8 @@ function postCard(id, post) {
       });
       input.value = '';
       await notify(post.authorId, 'commented on your Spark', { postId: id });
+      counts = await getPostCounts(id);
+      renderCounts();
     } catch (error) {
       alert(errorText(error));
     } finally {
@@ -528,17 +546,22 @@ async function messages() {
   const list = $('#conversationList');
   const panel = $('#chatPanel');
   const selectedUid = new URLSearchParams(location.search).get('user');
+  let stopMessages = null;
+
   const openChat = async uid => {
     if (!uid || uid === me.uid) return;
     const other = await getUser(uid);
     $('#chatName').textContent = displayName(other);
     $('#chatStatus').textContent = other.username ? `@${other.username}` : 'Private chat';
     panel.classList.remove('hide');
+    if (stopMessages) stopMessages();
+
     const id = conversationId(me.uid, uid);
     const conversationRef = doc(db, 'conversations', id);
     const messagesQuery = query(collection(db, 'conversations', id, 'messages'), orderBy('createdAt', 'asc'), limit(100));
-    onSnapshot(messagesQuery, snapshot => {
-      const box = $('#chatBox'); box.replaceChildren();
+    stopMessages = onSnapshot(messagesQuery, snapshot => {
+      const box = $('#chatBox');
+      box.replaceChildren();
       snapshot.forEach(item => {
         const message = item.data();
         const bubble = document.createElement('div');
@@ -548,12 +571,14 @@ async function messages() {
       });
       box.scrollTop = box.scrollHeight;
     }, error => status($('#chatBox'), errorText(error), 'error'));
+
     $('#messageForm').onsubmit = async event => {
       event.preventDefault();
       const input = $('#messageInput');
       const text = input.value.trim();
       if (!text) return;
-      const send = event.submitter || $('#messageForm button'); send.disabled = true;
+      const send = event.submitter || $('#messageForm button');
+      send.disabled = true;
       try {
         const existing = await getDoc(conversationRef);
         if (!existing.exists()) {
@@ -567,11 +592,18 @@ async function messages() {
       finally { send.disabled = false; }
     };
   };
-  $('#closeChat').onclick = () => { panel.classList.add('hide'); history.replaceState({}, '', 'messages.html'); };
+
+  $('#closeChat').onclick = () => {
+    if (stopMessages) stopMessages();
+    stopMessages = null;
+    panel.classList.add('hide');
+    history.replaceState({}, '', 'messages.html');
+  };
+
   const conversationsQuery = query(collection(db, 'conversations'), where('participantIds', 'array-contains', me.uid), orderBy('updatedAt', 'desc'), limit(50));
   onSnapshot(conversationsQuery, async snapshot => {
     list.replaceChildren();
-    if (snapshot.empty) status(list, 'No conversations yet. Open someone’s profile to start a chat.');
+    if (snapshot.empty) return status(list, 'No conversations yet. Open someone’s profile to start a chat.');
     for (const item of snapshot.docs) {
       const data = item.data();
       const uid = (data.participantIds || []).find(id => id !== me.uid);
@@ -587,6 +619,7 @@ async function messages() {
       list.append(row);
     }
   }, error => status(list, errorText(error), 'error'));
+
   if (selectedUid) await openChat(selectedUid);
 }
 
@@ -600,7 +633,9 @@ async function live() {
     if (snapshot.empty) return status(list, 'No one is live right now.');
     snapshot.forEach(item => {
       const liveSession = item.data();
-      const link = document.createElement('a'); link.href = `live.html?id=${item.id}`; link.className = 'live-card';
+      const link = document.createElement('a');
+      link.href = `live.html?id=${item.id}`;
+      link.className = 'live-card';
       const title = document.createElement('strong'); title.textContent = liveSession.title || 'Spark Live';
       const viewers = document.createElement('div'); viewers.className = 'muted'; viewers.textContent = `🔴 ${liveSession.viewerCount || 0} watching`;
       link.append(title, viewers); list.append(link);
